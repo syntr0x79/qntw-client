@@ -44,8 +44,8 @@ class AppNavigationTest {
         val activeId=stored.getString("active");val sources=stored.getJSONArray("sources");val source=(0 until sources.length()).map{sources.getJSONObject(it)}.first{it.getString("id")==activeId}
         val data=source.getJSONObject("cache");assertEquals(30,data.getJSONObject("subscription").getInt("days_available"))
         assertTrue(data.getJSONObject("routing").getJSONArray("direct_cidrs").length()>0)
-        val profiles=data.getJSONArray("profiles");val awg=(0 until profiles.length()).map{profiles.getJSONObject(it)}.first{it.getString("engine")=="amneziawg"}
-        ui.onNodeWithTag("nav-routes").performClick();ui.onNodeWithText("AmneziaWG").assertExists()
+        val profiles=data.getJSONArray("profiles");assertTrue("catalog must exceed six routes",profiles.length()>6);val awg=(0 until profiles.length()).map{profiles.getJSONObject(it)}.first{it.getString("engine")=="amneziawg"}
+        ui.onNodeWithTag("nav-routes").performClick();ui.onNodeWithText("Все",substring=false).performClick();ui.onNodeWithTag("route-${awg.getString("job_id")}").performScrollTo().assertExists()
         ui.onNodeWithTag("route-${awg.getString("job_id")}").performScrollTo().performClick()
         ui.onNodeWithTag("vpn-power").performClick()
         waitFor("AWG VPN did not connect: ${QuantwayVpnService.state.value}",60_000){QuantwayVpnService.phase.value=="connected"&&QuantwayVpnService.activeEngine.value=="amneziawg"}
@@ -75,6 +75,10 @@ class AppNavigationTest {
         ui.onNodeWithTag("nav-settings").performClick();screenshot("settings")
         ui.onNodeWithTag("nav-vpn").performClick();ui.onNodeWithText("Проверить маршруты").performScrollTo().performClick();ui.onNodeWithContentDescription("Делиться результатами").performScrollTo().performClick();ui.onNodeWithTag("start-probe").performScrollTo().performClick()
         waitFor("probe did not return recommendation",120_000){ui.onAllNodesWithText("Есть рабочие маршруты").fetchSemanticsNodes().isNotEmpty()}
+        val model=androidx.lifecycle.ViewModelProvider(ui.activity)[ProbeViewModel::class.java]
+        assertEquals("probe did not check the entire catalog",profiles.length(),model.state.value.completed)
+        assertEquals("probe lost results",profiles.length(),model.state.value.observations.size)
+        assertTrue("same-country masks are indistinguishable",model.state.value.rows.distinct().size==model.state.value.rows.size)
         assertEquals("probe silently changed active route",other.getString("job_id"),QuantwayVpnService.activeProfile.value!!.getString("job_id"))
         ui.onNodeWithTag("nav-routes").performClick();ui.onNodeWithTag("route-${other.getString("job_id")}").assertExists();screenshot("routes");ui.onNodeWithTag("nav-vpn").performClick();ui.onNodeWithText("Вы в сети").assertExists();screenshot("home")
         ui.onNodeWithTag("nav-settings").performClick();ui.onNodeWithText("Диагностика",substring=false).performScrollTo().performClick();ui.onNodeWithText("Подготовить отчёт").performScrollTo().performClick()

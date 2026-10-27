@@ -64,7 +64,7 @@ class EmulatorIntegrationTest {
             assertEquals(200, response.first)
             val run = response.second
             val jobs = run.getJSONArray("jobs")
-            assertEquals("Expected Reality, XHTTP and AWG", 3, jobs.length())
+            assertEquals("Expected all ten Reality, XHTTP, TCP and AWG masks", 10, jobs.length())
             val results = JSONArray()
             val names = mutableSetOf<String>()
             for (i in 0 until jobs.length()) {
@@ -152,7 +152,9 @@ class EmulatorIntegrationTest {
         val all=loaded.second.getJSONArray("profiles")
         val profiles=(0 until all.length()).map{all.getJSONObject(it)}
         val application=context.applicationContext as QuantwayApplication
+        application.preferences.update(application.preferences.state.value.copy(autoRestore=true))
         awaitCondition("Wi-Fi was not ready before VPN test"){application.physical.state.value.label=="Wi-Fi"}
+        Thread.sleep(1500)
         for(engine in listOf("amneziawg","xray")) {
             val profile=profiles.first{it.getString("engine")==engine}
             QuantwayVpnService.profiles=listOf(profile)

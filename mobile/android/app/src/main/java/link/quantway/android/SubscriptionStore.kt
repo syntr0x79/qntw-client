@@ -47,3 +47,9 @@ fun JSONObject.protocolLabel():String = when(optString("protocol").lowercase()) 
     "vless"->"VLESS"+when{optString("security")=="reality"->" · Reality";optString("transport")=="xhttp"->" · XHTTP";optString("transport").isNotBlank()->" · "+optString("transport").uppercase();else->""}
     else->if(optString("engine")=="amneziawg")"AmneziaWG" else "Xray"
 }
+
+// A country route can have several independent masks and transports.
+fun JSONObject.probeLabel(): String {
+    val variant = optString("entry_label").ifBlank { optString("inbound_id").ifBlank { optString("job_id").substringAfterLast("/") }.take(8) }
+    return listOf(optString("label"), protocolLabel(), variant).filter { it.isNotBlank() }.joinToString(" · ")
+}
