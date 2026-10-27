@@ -1,0 +1,6 @@
+/android/.gradle/
+/android/local.properties
+/android/**/build/
+/android/app/libs/*.aar
+/android/app/libs/*-sources.jar
+/android/.kotlin/
