@@ -29,6 +29,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -102,8 +104,7 @@ private data class Confirmation(val title:String,val message:String,val action:(
     val pendingRules=serviceRunning&&applied!=routingKey(app)
     Scaffold(modifier=Modifier.fillMaxSize().systemBarsPadding(),containerColor=MaterialTheme.colorScheme.background,topBar={
         Row(Modifier.fillMaxWidth().padding(horizontal=16.dp).heightIn(min=52.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
-            if(page !in listOf(Page.VPN,Page.ROUTES,Page.ACCOUNT,Page.SETTINGS))IconButton(onClick={back()},modifier=Modifier.testTag("back")){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Назад")}else Row{Text("Q",color=MaterialTheme.colorScheme.primary,fontWeight=FontWeight.SemiBold,letterSpacing=2.sp);Text("UANTWAY",fontWeight=FontWeight.SemiBold,letterSpacing=2.sp)}
-            Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){Icon(if(online)Icons.Default.Lock else Icons.Default.Info,null,Modifier.size(14.dp),tint=MaterialTheme.colorScheme.onSurfaceVariant);Text(if(online)"VPN активен"else "Ваш VPN",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+            if(page !in listOf(Page.VPN,Page.ROUTES,Page.ACCOUNT,Page.SETTINGS))IconButton(onClick={back()},modifier=Modifier.testTag("back")){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Назад")}else Text("Quantway",fontFamily=FontFamily.SansSerif,fontSize=20.sp,lineHeight=26.sp,fontWeight=FontWeight.SemiBold,letterSpacing=(-.5).sp)
         }
     },bottomBar={
         NavigationBar(containerColor=MaterialTheme.colorScheme.background,tonalElevation=0.dp,modifier=Modifier.border(BorderStroke(1.dp,MaterialTheme.colorScheme.outline))){listOf(Triple(Page.VPN,"VPN",Icons.Default.Home),Triple(Page.ROUTES,"Маршруты",Icons.AutoMirrored.Filled.List),Triple(Page.ACCOUNT,"Кабинет",Icons.Default.AccountCircle),Triple(Page.SETTINGS,"Настройки",Icons.Default.Settings)).forEach{(id,label,icon)->NavigationBarItem(selected=topPage==id,onClick={go(id)},icon={Icon(icon,null)},label={Text(label,fontSize=11.sp)},modifier=Modifier.testTag("nav-${id.name.lowercase()}"),colors=NavigationBarItemDefaults.colors(selectedIconColor=MaterialTheme.colorScheme.primary,selectedTextColor=MaterialTheme.colorScheme.primary,indicatorColor=MaterialTheme.colorScheme.primary.copy(alpha=.1f)))}}
@@ -135,7 +136,7 @@ private data class Confirmation(val title:String,val message:String,val action:(
                             Power(online,if(online)"Отключить"else if(serviceRunning)"Отменить"else "Подключить",!busy||serviceRunning){if(serviceRunning)model.disconnect(context)else connect()}
                             Text(if(online)"${formatDuration(elapsed)} · ${network.label}"else network.label,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        selected?.let{profile->Panel{Row(Modifier.fillMaxWidth().clickable{go(Page.ROUTES)}.testTag("selected-route"),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){Box(Modifier.size(42.dp).background(MaterialTheme.colorScheme.surfaceVariant,RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){Text(if(state.automatic)"A"else "→",color=MaterialTheme.colorScheme.primary)};Column(Modifier.weight(1f)){Text(if(state.automatic)"Автоматический выбор"else profile.optString("label"),style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis);if(state.automatic)Text(profile.optString("label"),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=2,overflow=TextOverflow.Ellipsis)};Text("›",fontSize=23.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)};HorizontalDivider(color=MaterialTheme.colorScheme.outline);FlowRow(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){Muted(profile.protocolLabel());ObservationLabel(state.observations[profile.optString("job_id")],network.epoch)}}}
+                        selected?.let{profile->HomeRoutes(profile,state.automatic,state.profiles,state.observations,network.epoch,onAll={go(Page.ROUTES)},onChoose={choose(it)})}
                         if(state.checkedAt>0)Muted("Последняя проверка: ${relativeTime(state.checkedAt)} · ${state.checkedNetwork}")
                         Secondary("Проверить маршруты",enabled=!busy){go(Page.PROBE)}
                         if(online)SecondaryAction("О соединении"){go(Page.DETAILS)}
@@ -234,7 +235,23 @@ private fun relativeTime(at:Long):String{val seconds=((System.currentTimeMillis(
 @Composable private fun Panel(selected:Boolean=false,modifier:Modifier=Modifier,content:@Composable ColumnScope.()->Unit){Surface(modifier=modifier.fillMaxWidth(),shape=RoundedCornerShape(22.dp),color=if(selected)MaterialTheme.colorScheme.primary.copy(alpha=.08f)else MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,if(selected)MaterialTheme.colorScheme.primary.copy(alpha=.5f)else MaterialTheme.colorScheme.outline)){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)}}
 @Composable private fun Primary(text:String,modifier:Modifier=Modifier,enabled:Boolean=true,onClick:()->Unit){Button(onClick=onClick,enabled=enabled,modifier=modifier.fillMaxWidth().heightIn(min=49.dp),shape=RoundedCornerShape(15.dp)){Text(text,textAlign=TextAlign.Center)}}
 @Composable private fun Secondary(text:String,modifier:Modifier=Modifier,enabled:Boolean=true,onClick:()->Unit){OutlinedButton(onClick=onClick,enabled=enabled,modifier=modifier.fillMaxWidth().heightIn(min=49.dp),shape=RoundedCornerShape(15.dp),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outline)){Text(text,textAlign=TextAlign.Center,color=if(enabled)MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)}}
-@Composable private fun Power(connected:Boolean,label:String,enabled:Boolean,onClick:()->Unit){val accent=MaterialTheme.colorScheme.primary;val muted=MaterialTheme.colorScheme.outline;val ink=if(connected)MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface;Box(Modifier.fillMaxWidth().height(185.dp),contentAlignment=Alignment.Center){Box(Modifier.size(170.dp).border(1.dp,if(connected)accent.copy(alpha=.4f)else muted,CircleShape),contentAlignment=Alignment.Center){Box(Modifier.size(145.dp).border(1.dp,muted,CircleShape));Column(Modifier.size(120.dp).clip(CircleShape).background(if(connected)accent else MaterialTheme.colorScheme.surface).border(1.dp,if(connected)accent else muted,CircleShape).clickable(enabled=enabled,role=Role.Button,onClick=onClick).semantics{contentDescription="$label VPN"}.testTag("vpn-power"),verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally){Canvas(Modifier.size(36.dp)){val center=Offset(size.width/2,size.height/2);val r=14.dp.toPx();drawArc(ink,-48f,276f,false,Offset(center.x-r,center.y-r),Size(r*2,r*2),style=Stroke(2.5.dp.toPx(),cap=StrokeCap.Round));drawLine(ink,Offset(center.x,center.y-18.dp.toPx()),Offset(center.x,center.y-3.dp.toPx()),2.5.dp.toPx(),StrokeCap.Round)};Spacer(Modifier.height(9.dp));Text(label,fontSize=12.sp,color=ink)}}}}
+@Composable private fun Power(connected:Boolean,label:String,enabled:Boolean,onClick:()->Unit){
+    val accent=MaterialTheme.colorScheme.primary
+    val ink=if(connected)MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    Box(Modifier.fillMaxWidth().height(185.dp),contentAlignment=Alignment.Center){
+        Box(Modifier.size(184.dp).background(Brush.radialGradient(0f to accent.copy(alpha=if(connected).65f else .48f), .65f to accent.copy(alpha=if(connected).42f else .30f), 1f to Color.Transparent),CircleShape),contentAlignment=Alignment.Center){
+            Column(Modifier.size(136.dp).clip(CircleShape).background(if(connected)accent else MaterialTheme.colorScheme.surfaceContainerHigh).clickable(enabled=enabled,role=Role.Button,onClick=onClick).semantics{contentDescription="$label VPN"}.testTag("vpn-power"),verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally){
+                Canvas(Modifier.size(36.dp)){
+                    val center=Offset(size.width/2,size.height/2);val r=14.dp.toPx()
+                    drawArc(ink,-48f,276f,false,Offset(center.x-r,center.y-r),Size(r*2,r*2),style=Stroke(2.5.dp.toPx(),cap=StrokeCap.Round))
+                    drawLine(ink,Offset(center.x,center.y-18.dp.toPx()),Offset(center.x,center.y-3.dp.toPx()),2.5.dp.toPx(),StrokeCap.Round)
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(label,fontSize=13.sp,fontWeight=FontWeight.Medium,color=ink)
+            }
+        }
+    }
+}
 @Composable private fun Setting(title:String,subtitle:String,icon:ImageVector,onClick:()->Unit){Row(Modifier.fillMaxWidth().clickable(onClick=onClick).heightIn(min=56.dp).padding(vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){Icon(icon,null,Modifier.size(20.dp),tint=MaterialTheme.colorScheme.primary);Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(title,style=MaterialTheme.typography.titleSmall);Muted(subtitle)};Text("›",fontSize=22.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)}}
 @Composable private fun Toggle(title:String,subtitle:String,checked:Boolean,enabled:Boolean=true,onChange:(Boolean)->Unit){Row(Modifier.fillMaxWidth().heightIn(min=56.dp).padding(vertical=6.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(title,style=MaterialTheme.typography.titleSmall);Muted(subtitle)};Switch(checked,onChange,enabled=enabled,modifier=Modifier.semantics{contentDescription=title})}}
 @Composable internal fun Detail(label:String,value:String){Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(2.dp)){Muted(label);Text(value,style=MaterialTheme.typography.bodyMedium)}}
@@ -266,5 +283,35 @@ private fun relativeTime(at:Long):String{val seconds=((System.currentTimeMillis(
             Text("$percent%",style=MaterialTheme.typography.headlineSmall,modifier=Modifier.testTag("probe-percent"))
         }
         Muted(if(percent==100)"Завершаем проверку…"else "Проверяем доступность маршрутов…")
+    }
+}
+
+@Composable internal fun HomeRoutes(current:JSONObject,automatic:Boolean,profiles:List<JSONObject>,observations:Map<String,ProbeObservation>,epoch:String,onAll:()->Unit,onChoose:(String)->Unit){
+    val best=profiles.distinctBy{it.optString("job_id")}.filter{
+        it.optString("job_id")!=current.optString("job_id")&&observations[it.optString("job_id")]?.let{o->o.epoch==epoch&&o.outcome=="ok"}==true
+    }.sortedBy{observations[it.optString("job_id")]!!.elapsedMS}.take(3)
+    Panel(modifier=Modifier.testTag("home-route-panel")){
+        HomeRouteRow(current,observations[current.optString("job_id")],epoch,true,automatic,onAll)
+        if(best.isNotEmpty()){
+            Text("Лучшие в этой сети",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Column{
+                best.forEachIndexed{index,profile->
+                    if(index>0)HorizontalDivider(color=MaterialTheme.colorScheme.outline)
+                    HomeRouteRow(profile,observations[profile.optString("job_id")],epoch,false,false){onChoose(profile.getString("job_id"))}
+                }
+            }
+        }else Muted("Проверьте маршруты, чтобы увидеть лучшие в этой сети.")
+    }
+}
+
+@Composable private fun HomeRouteRow(profile:JSONObject,observation:ProbeObservation?,epoch:String,current:Boolean,automatic:Boolean,onClick:()->Unit){
+    val id=profile.optString("job_id")
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if(current)MaterialTheme.colorScheme.primary.copy(alpha=.08f)else Color.Transparent).clickable(role=Role.Button,onClick=onClick).heightIn(min=56.dp).padding(horizontal=10.dp,vertical=8.dp).testTag(if(current)"selected-route"else "home-route-choice-$id"),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
+        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
+            if(current)Text(if(automatic)"Текущий · автоматически"else "Текущий маршрут",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)
+            Text(profile.optString("label"),style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis)
+            Text(profile.protocolLabel(),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=2,overflow=TextOverflow.Ellipsis)
+        }
+        ObservationLabel(observation,epoch)
     }
 }

@@ -87,6 +87,15 @@ class AppNavigationTest {
         assertTrue("same-country masks are indistinguishable",model.state.value.rows.distinct().size==model.state.value.rows.size)
         assertEquals("probe silently changed active route",other.getString("job_id"),QuantwayVpnService.activeProfile.value!!.getString("job_id"))
         ui.onNodeWithTag("nav-routes").performClick();ui.onNodeWithTag("route-${other.getString("job_id")}").assertExists();screenshot("routes");ui.onNodeWithTag("nav-vpn").performClick();ui.onNodeWithText("Вы в сети").assertExists();screenshot("home")
+        val suggestions=model.state.value.profiles.filter{p->p.optString("job_id")!=other.getString("job_id")&&model.state.value.observations[p.optString("job_id")]?.let{it.epoch==app.physical.state.value.epoch&&it.outcome=="ok"}==true}.sortedBy{model.state.value.observations[it.getString("job_id")]!!.elapsedMS}.take(3)
+        assertEquals("home should have three measured alternatives",3,suggestions.size)
+        suggestions.forEach{ui.onNodeWithTag("home-route-choice-${it.getString("job_id")}").performScrollTo().assertIsDisplayed()}
+        val alternative=suggestions.first().getString("job_id")
+        ui.onNodeWithTag("home-route-choice-$alternative").performScrollTo().performClick()
+        ui.onNodeWithText("Сменить маршрут?").assertExists()
+        assertEquals("home choice changed active route before confirmation",other.getString("job_id"),QuantwayVpnService.activeProfile.value!!.getString("job_id"))
+        ui.onNodeWithTag("confirm-action").performClick()
+        waitFor("home choice did not reconnect VPN"){QuantwayVpnService.phase.value=="connected"&&QuantwayVpnService.activeProfile.value?.getString("job_id")==alternative}
         ui.onNodeWithTag("nav-settings").performClick();ui.onNodeWithText("Диагностика",substring=false).performScrollTo().performClick();ui.onNodeWithText("Подготовить отчёт").performScrollTo().performClick()
         val report=ui.onNodeWithTag("diagnostic-report").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString()
         assertFalse(report.contains(fixture.getString("token")));assertFalse(report.contains("PrivateKey"));assertFalse(report.contains("vless://"))
@@ -94,7 +103,7 @@ class AppNavigationTest {
         ui.onNodeWithTag("subscription-link").performTextInput("$origin/external-subscription")
         ui.onNodeWithTag("import-submit").performClick()
         waitFor("external subscription did not import"){app.subscriptions.read().getJSONArray("sources").let{a->(0 until a.length()).any{!a.getJSONObject(it).getBoolean("api")}}}
-        assertEquals("import disrupted active VPN",other.getString("job_id"),QuantwayVpnService.activeProfile.value!!.getString("job_id"))
+        assertEquals("import disrupted active VPN",alternative,QuantwayVpnService.activeProfile.value!!.getString("job_id"))
         ui.onNodeWithTag("nav-vpn").performClick();ui.onNodeWithTag("vpn-power").performScrollTo().performClick()
         waitFor("VPN did not stop"){QuantwayVpnService.current==null}
         assertEquals("dark",app.preferences.state.value.theme)
