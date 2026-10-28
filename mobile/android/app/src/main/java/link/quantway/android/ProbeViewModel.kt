@@ -90,10 +90,11 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
                 val results=JSONArray();val rows=mutableListOf<String>();var changed=false
                 for(i in 0 until jobs.length()){
                     ensureActive();val job=jobs.getJSONObject(i)
+                    if(job.optBoolean("provisioning")&&job.optString("engine")=="amneziawg")mutable.value=mutable.value.copy(message="Готовим и проверяем AWG · ${i+1} из ${jobs.length()}")
                     val result=if(physical.state.value.epoch!=snapshot.epoch)JSONObject().put("job_id",job.getString("job_id")).put("outcome","cancelled").put("reason_code","network_changed").put("elapsed_ms",0)else ProbeExecutor(physical).execute(job,run.getString("control_url"),8_000L,snapshot)
                     if(physical.state.value.epoch!=snapshot.epoch){changed=true;result.put("outcome","cancelled").put("reason_code","network_changed")}
                     results.put(result);val outcome=result.getString("outcome");val id=job.getString("job_id")
-                    rows+="${job.probeLabel()} · "+when(outcome){"ok"->"Работает";"fail"->"Не отвечает";"cancelled"->"Повторим в новой сети";else->"Не проверено"}
+                    rows+="${job.probeLabel()} · "+when(outcome){"ok"->"Работает";"fail"->"Не отвечает";"cancelled"->"Повторим в новой сети";else->"Проверка недоступна"}
                     mutable.value=mutable.value.copy(message="Проверка ${i+1} из ${jobs.length()}",rows=rows.toList(),completed=i+1,observations=mutable.value.observations+(id to ProbeObservation(id,job.probeLabel(),outcome,result.optLong("elapsed_ms"),snapshot.epoch,snapshot.label,System.currentTimeMillis())))
                 }
                 if(upload&&!isExternal&&jobs.length()>0&&api!=null&&link!=null){val report=JSONObject().put("report_id",UUID.randomUUID().toString()).put("run_id",run.getString("run_id")).put("network_epoch",snapshot.epoch).put("app_version",BuildConfig.VERSION_NAME).put("engine_version",Engine.version()).put("results",results);val envelope=JSONObject().put("origin",link.origin).put("scope",api.scope).put("expires_at",run.getString("expires_at")).put("report",report);val temp=File(directory,"${report.getString("report_id")}.tmp");temp.writeText(envelope.toString());check(temp.renameTo(File(directory,"${report.getString("report_id")}.json")));try{flush(api,link.origin)}catch(_:Exception){}}

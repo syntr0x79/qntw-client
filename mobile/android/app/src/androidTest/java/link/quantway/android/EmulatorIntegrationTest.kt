@@ -69,8 +69,16 @@ class EmulatorIntegrationTest {
             val names = mutableSetOf<String>()
             for (i in 0 until jobs.length()) {
                 val job = jobs.getJSONObject(i)
+                if(job.optString("engine")=="amneziawg")job.put("provisioning",true)
                 val result = runBlocking { ProbeExecutor(physical).execute(job, run.getString("control_url"), 20_000, snapshot) }
                 android.util.Log.i("QuantwayIntegration", "${job.getString("label")}: $result")
+                if(job.optString("engine")=="amneziawg") {
+                    val unavailable=JSONObject(job.toString()).put("awg_conf",job.getString("awg_conf").replace(Regex("(?m)^Endpoint\\s*=.*$"),"Endpoint = 10.0.2.2:9"))
+                    val started=android.os.SystemClock.elapsedRealtime()
+                    val failed=runBlocking {ProbeExecutor(physical).execute(unavailable,run.getString("control_url"),1200,snapshot)}
+                    assertEquals("pending AWG was skipped instead of probed", "fail",failed.getString("outcome"))
+                    assertTrue("AWG preparation retries exceeded their shared budget",android.os.SystemClock.elapsedRealtime()-started<2500)
+                }
                 names += job.getString("label")
                 results.put(result)
             }
@@ -152,6 +160,8 @@ class EmulatorIntegrationTest {
         val all=loaded.second.getJSONArray("profiles")
         val profiles=(0 until all.length()).map{all.getJSONObject(it)}
         val application=context.applicationContext as QuantwayApplication
+        QuantwayVpnService.controlURL=loaded.second.getString("control_url")
+        application.routingPolicy=loaded.second.optJSONObject("routing")
         application.preferences.update(application.preferences.state.value.copy(autoRestore=true))
         awaitCondition("Wi-Fi was not ready before VPN test"){application.physical.state.value.label=="Wi-Fi"}
         Thread.sleep(1500)
