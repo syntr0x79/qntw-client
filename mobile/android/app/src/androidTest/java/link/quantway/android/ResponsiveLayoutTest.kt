@@ -37,6 +37,7 @@ class ResponsiveLayoutTest {
                             RouteCard(JSONObject().put("job_id", "long").put("label", name).put("engine", "xray").put("entry_label", "Маска с очень длинным названием"), false, null, "test") { clicked = true }
                             CompactDeviceRow(JSONObject().put("id", "phone").put("name", name), true, false, {}, {}, {}, {})
                             Surface(Modifier.testTag("detail")) { Detail("Подписка", value) }
+                            HelpItem("Как работает подключение?", "Развёрнутый ответ справки")
                         }
                     }
                 }
@@ -57,5 +58,7 @@ class ResponsiveLayoutTest {
         val route = ui.onNodeWithTag("route-long").fetchSemanticsNode().boundsInRoot
         val device = ui.onNodeWithTag("device-card-phone").fetchSemanticsNode().boundsInRoot
         assertTrue("cards must not overlap", route.bottom <= device.top)
+        ui.onNodeWithText("Как работает подключение?").performScrollTo().performClick()
+        ui.onNodeWithText("Развёрнутый ответ справки").performScrollTo().assertIsDisplayed()
     }
 }

@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.ui.Alignment
@@ -41,7 +42,7 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
     BackHandler(!home){model.open("home")}
     LaunchedEffect(state.authenticated){if(state.authenticated)code=""}
     fun external(url:String){val uri=runCatching{Uri.parse(url)}.getOrNull()?:return;if(uri.scheme=="https")context.startActivity(Intent(Intent.ACTION_VIEW,uri))}
-    if(!home)TextButton(onClick={model.open("home")}){Text("← Кабинет")}
+    if(!home)SecondaryAction("Кабинет",modifier=Modifier.testTag("back-account"),icon=Icons.AutoMirrored.Filled.ArrowBack){model.open("home")}
     Text(if(!state.authenticated)"Вход в Quantway"else when(state.page){"devices"->"Мои устройства";"plans"->"Продление подписки";"invoices"->"Мои счета";"invoice"->"Оплата";"support","ticket"->"Поддержка";"history"->"История подписки";"referral"->"Пригласить друга";else->"Мой кабинет"},style=MaterialTheme.typography.headlineMedium)
     if(state.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
     if(state.message.isNotBlank())AccountNotice(state.message)
@@ -49,7 +50,7 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
         CMuted("Введите тот же код, которым входите в кабинет Quantway. Он есть в сообщении бота или был выдан при регистрации.")
         OutlinedTextField(code,{code=it},label={Text("Код для входа")},singleLine=true,enabled=!state.busy,visualTransformation=PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Password),modifier=Modifier.fillMaxWidth().testTag("account-code"))
         CButton("Войти",!state.busy&&code.isNotBlank(),"account-login"){model.login(code.trim())}
-        if(state.botURL.isNotBlank())TextButton(onClick={external(state.botURL)}){Text("Получить код в Telegram")}
+        if(state.botURL.isNotBlank())SecondaryAction("Получить код в Telegram ↗"){external(state.botURL)}
         CMuted("Код и сессия кабинета не передаются сторонним VPN-провайдерам.")
     }else when(state.page){
         "home"->{
@@ -60,8 +61,8 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
             AccountLink("Счета и оплаты"){model.open("invoices","invoices")}
             if(features.optBoolean("support"))AccountLink("Поддержка",tag="account-support"){model.open("support","support")}
             if(features.optBoolean("referral"))AccountLink("Пригласить друга"){model.open("referral","referral")}
-            TextButton(onClick={model.refresh()},enabled=!state.busy){Text("Обновить кабинет")}
-            TextButton(onClick={confirm="Выйти из аккаунта? VPN-подписки останутся на этом телефоне." to {model.logout()}},enabled=!state.busy,modifier=Modifier.testTag("account-logout")){Text("Выйти")}
+            SecondaryAction("Обновить кабинет",enabled=!state.busy){model.refresh()}
+            SecondaryAction("Выйти",enabled=!state.busy,modifier=Modifier.testTag("account-logout")){confirm="Выйти из аккаунта? VPN-подписки останутся на этом телефоне." to {model.logout()}}
         }
         "devices"->{
             val devices=state.devices
@@ -78,7 +79,7 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
                     confirm=(if(d.optBoolean("blocked"))"Разблокировать устройство?"else "Заблокировать устройство?") to {model.action("devices/$id/"+if(d.optBoolean("blocked"))"unblock"else "block",reload="devices")}
                 },onDelete={confirm="Удалить устройство? Его VPN-ссылка перестанет работать." to {model.action("devices/$id","DELETE",reload="devices")}})}
             }
-            TextButton(onClick={model.open("devices","devices")},enabled=!state.busy,modifier=Modifier.testTag("refresh-account-devices")){Text("Обновить список")}
+            SecondaryAction("Обновить список",enabled=!state.busy,modifier=Modifier.testTag("refresh-account-devices")){model.open("devices","devices")}
         }
         "plans"->{
             val plans=state.data.optJSONArray("plans").objects();val methods=state.data.optJSONArray("methods").objects();val choice=state.data.optJSONObject("devices")
@@ -88,7 +89,7 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
             val selected=plans.firstOrNull{it.optString("id")==selectedPlan};val total=selected?.optJSONArray("totals").objects().firstOrNull{it.optInt("devices")==extras};val price=total?.optString("promo_price")?.ifBlank{total.optString("price")}?:selected?.optString("promo_price")?.ifBlank{selected.optString("price")}
             if(!price.isNullOrBlank())Text("К оплате: $price",style=MaterialTheme.typography.titleLarge)
             FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)){methods.forEach{m->FilterChip(method==m.optString("id"),{method=m.optString("id")},label={Text(m.optString("label"))})}}
-            if(state.me.optJSONObject("features")?.optBoolean("promo")==true){state.data.optJSONObject("promo")?.let{held->CMuted("Промокод: ${held.optString("code")}");TextButton(onClick={model.action("promo","DELETE",reload="plans")},enabled=!state.busy){Text("Убрать промокод")}};OutlinedTextField(promo,{promo=it},label={Text("Промокод")},singleLine=true,modifier=Modifier.fillMaxWidth());CButton("Применить промокод",!state.busy&&promo.isNotBlank()){model.action("promo",body=JSONObject().put("code",promo.trim()),reload="plans")}}
+            if(state.me.optJSONObject("features")?.optBoolean("promo")==true){state.data.optJSONObject("promo")?.let{held->CMuted("Промокод: ${held.optString("code")}");SecondaryAction("Убрать промокод",enabled=!state.busy){model.action("promo","DELETE",reload="plans")}};OutlinedTextField(promo,{promo=it},label={Text("Промокод")},singleLine=true,modifier=Modifier.fillMaxWidth());CButton("Применить промокод",!state.busy&&promo.isNotBlank()){model.action("promo",body=JSONObject().put("code",promo.trim()),reload="plans")}}
             CButton("Создать счёт",!state.busy&&selectedPlan.isNotBlank()&&method.isNotBlank(),"account-create-invoice"){model.invoice(selectedPlan,method,if(choice!=null)extras else null)}
         }
         "invoices"->{state.data.optJSONArray("invoices").objects().forEach{i->CPanel{Text(i.optString("title"));Text("${i.optString("amount_rub")} · ${i.optString("status")}");CMuted(i.optString("date"));CButton("Открыть счёт",!state.busy){model.open("invoice","invoices/${i.getString("id")}")}}};if(state.data.optBoolean("more"))CButton("Следующие счета",!state.busy){model.open("invoices","invoices?before=${Uri.encode(state.data.optString("next_before"))}")}}
@@ -99,8 +100,8 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
             val conversation=if(state.page=="support")state.data.optJSONObject("current")else state.data
             val messages=conversation?.optJSONArray("messages").objects()
             messages.forEach{m->CPanel{CMuted(m.optString("author")+" · "+m.optString("at"));Text(m.optString("body"));if(m.optString("note").isNotBlank())CMuted(m.optString("note"))}}
-            if(state.page=="support"){OutlinedTextField(message,{message=it},label={Text("Сообщение поддержке")},minLines=3,maxLines=6,enabled=!state.busy,modifier=Modifier.fillMaxWidth().testTag("account-support-message"));CButton("Отправить",!state.busy&&message.isNotBlank()&&message.length<=state.data.optInt("max_runes",4000),"account-support-send"){model.action("support/messages",body=JSONObject().put("body",message),reload="support",done={message=""})};state.data.optJSONArray("history").objects().forEach{t->TextButton(onClick={model.open("ticket","support/tickets/${t.getLong("id")}")}){Text(t.optString("subject")+" · "+t.optString("closed"))}}}
-            TextButton(onClick={model.open(state.page,if(state.page=="support")"support"else "support/tickets/${state.data.optJSONObject("ticket")?.optLong("id")}")},enabled=!state.busy){Text("Обновить переписку")}
+            if(state.page=="support"){OutlinedTextField(message,{message=it},label={Text("Сообщение поддержке")},minLines=3,maxLines=6,enabled=!state.busy,modifier=Modifier.fillMaxWidth().testTag("account-support-message"));CButton("Отправить",!state.busy&&message.isNotBlank()&&message.length<=state.data.optInt("max_runes",4000),"account-support-send"){model.action("support/messages",body=JSONObject().put("body",message),reload="support",done={message=""})};state.data.optJSONArray("history").objects().forEach{t->AccountLink(t.optString("subject")+" · "+t.optString("closed")){model.open("ticket","support/tickets/${t.getLong("id")}")}}}
+            SecondaryAction("Обновить переписку",enabled=!state.busy){model.open(state.page,if(state.page=="support")"support"else "support/tickets/${state.data.optJSONObject("ticket")?.optLong("id")}")}
         }
     }
     HorizontalDivider()
