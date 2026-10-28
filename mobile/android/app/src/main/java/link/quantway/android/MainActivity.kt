@@ -45,17 +45,20 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 
 class MainActivity:ComponentActivity(){
     override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{val app=application as QuantwayApplication;val prefs by app.preferences.state.collectAsState();val dark=when(prefs.theme){"dark"->true;"light"->false;else->isSystemInDarkTheme()};val colors=if(dark)darkColorScheme(primary=Color(0xff3ed8d0),onPrimary=Color(0xff080f0e),background=Color(0xff080f0e),surface=Color(0xff14201e),surfaceVariant=Color(0xff0d1716),onBackground=Color(0xffdde9e7),onSurface=Color(0xffdde9e7),onSurfaceVariant=Color(0xff8a9a97),outline=Color(0xff27332f),secondary=Color(0xff3ed8d0),onSecondary=Color(0xff080f0e),secondaryContainer=Color(0xff183e3a),onSecondaryContainer=Color(0xffdde9e7),surfaceContainerLow=Color(0xff0d1716),surfaceContainer=Color(0xff14201e),surfaceContainerHigh=Color(0xff1b2926),surfaceContainerHighest=Color(0xff24332f))else lightColorScheme(primary=Color(0xff0b5f5a),onPrimary=Color(0xfff5f8f8),background=Color(0xfff5f8f8),surface=Color.White,surfaceVariant=Color(0xffe8f0ef),onBackground=Color(0xff0c1413),onSurface=Color(0xff0c1413),onSurfaceVariant=Color(0xff47544f),outline=Color(0xffd3dedd),secondary=Color(0xff0b5f5a),onSecondary=Color(0xfff5f8f8),secondaryContainer=Color(0xffdcebe8),onSecondaryContainer=Color(0xff0b5f5a),surfaceContainerLow=Color(0xfff0f5f4),surfaceContainer=Color(0xffe8f0ef),surfaceContainerHigh=Color(0xffe3edeb),surfaceContainerHighest=Color(0xffdce8e5));SideEffect{WindowCompat.getInsetsController(window,window.decorView).isAppearanceLightStatusBars=!dark;WindowCompat.getInsetsController(window,window.decorView).isAppearanceLightNavigationBars=!dark;window.decorView.setBackgroundColor(colors.background.toArgb())};MaterialTheme(colorScheme=colors,shapes=Shapes(small=RoundedCornerShape(12.dp),medium=RoundedCornerShape(18.dp),large=RoundedCornerShape(22.dp),extraLarge=RoundedCornerShape(28.dp))){QuantwayApp()}}}
 }
 
-private enum class Page{VPN,ROUTES,SUBSCRIPTIONS,SETTINGS,IMPORT,PROBE,DETAILS,SPLIT,EXCEPTIONS,DIAGNOSTICS,REPORT,HELP,ABOUT}
+private enum class Page{VPN,ROUTES,SUBSCRIPTIONS,SETTINGS,ACCOUNT,IMPORT,PROBE,DETAILS,SPLIT,EXCEPTIONS,DIAGNOSTICS,REPORT,HELP,ABOUT}
 private data class Confirmation(val title:String,val message:String,val action:()->Unit)
 
 @OptIn(ExperimentalMaterial3Api::class,ExperimentalLayoutApi::class)
 @Composable private fun QuantwayApp(model:ProbeViewModel=viewModel()){
+    val cabinet:CabinetViewModel=viewModel()
+    val cabinetState by cabinet.state.collectAsState()
     val state by model.state.collectAsState();val prefs by model.preferences.state.collectAsState();val network by model.physical.state.collectAsState()
     val phase by QuantwayVpnService.phase.collectAsState();val active by QuantwayVpnService.activeProfile.collectAsState();val started by QuantwayVpnService.startedAt.collectAsState();val applied by QuantwayVpnService.appliedRules.collectAsState()
     val context=LocalContext.current;val app=context.applicationContext as QuantwayApplication
@@ -69,37 +72,53 @@ private data class Confirmation(val title:String,val message:String,val action:(
     val source=model.activeSource();val inactive=source?.api==true&&model.subscriptionStatus() in listOf("paused","expired","unauthorized")
     val selected=active?:state.profiles.firstOrNull{it.optString("job_id")==state.selectedId}
     fun go(p:Page){pageName=p.name}
-    fun openCabinet(){model.accountURL()?.let{context.startActivity(Intent(context,AccountActivity::class.java).putExtra("url",it))}}
+    fun openCabinet(){go(Page.ACCOUNT)}
     val consent=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()){if(it.resultCode==Activity.RESULT_OK)model.connect(context)}
     fun connect(){if(inactive){openCabinet();return};val intent=VpnService.prepare(context);if(intent==null)model.connect(context)else consent.launch(intent)}
     fun choose(id:String?,auto:Boolean=false){
         val change={if(auto)model.selectAutomatic()else id?.let{model.select(it)};go(Page.VPN)}
         if(serviceRunning){confirmation=Confirmation("Сменить маршрут?","Текущее подключение продолжит работать до подтверждения. Затем VPN переподключится."){change();connect()}}else change()
     }
-    fun back(){go(when(page){Page.EXCEPTIONS->Page.SPLIT;Page.SPLIT,Page.DIAGNOSTICS,Page.HELP,Page.ABOUT,Page.REPORT->Page.SETTINGS;Page.IMPORT->Page.SUBSCRIPTIONS;else->Page.VPN})}
+    fun back(){go(when(page){Page.EXCEPTIONS->Page.SPLIT;Page.SPLIT,Page.DIAGNOSTICS,Page.HELP,Page.ABOUT,Page.REPORT->Page.SETTINGS;Page.IMPORT->Page.SUBSCRIPTIONS;Page.SUBSCRIPTIONS->Page.ACCOUNT;else->Page.VPN})}
     BackHandler(page !in listOf(Page.VPN)){back()}
+    LaunchedEffect(cabinetState.me.optJSONObject("subscription")?.toString()){
+        if(cabinetState.authenticated&&source?.url==app.cabinet.deviceLink){
+            if(cabinetState.me.optJSONObject("subscription")?.optString("status") in listOf("paused","expired")){
+                if(model.state.value.activity=="probe")model.cancel()
+                if(serviceRunning)model.disconnect(context)
+            }
+            model.state.first{!it.running}
+            if(model.activeSource()?.url==app.cabinet.deviceLink)model.refresh()
+        }
+    }
     LaunchedEffect(started,phase){while(online&&started>0){elapsed=(android.os.SystemClock.elapsedRealtime()-started)/1000;delay(1000)};if(!online)elapsed=0}
     LaunchedEffect(state.running,state.sources.size,state.message){if(importing&&!state.running&&state.message=="Подписка добавлена"){importing=false;link="";go(if(serviceRunning)Page.SUBSCRIPTIONS else Page.VPN)}}
     val owner=LocalLifecycleOwner.current
     DisposableEffect(owner,model){val observer=LifecycleEventObserver{_,event->if(event==Lifecycle.Event.ON_RESUME&&model.activeSource()!=null&&!model.state.value.running)model.refresh()};owner.lifecycle.addObserver(observer);onDispose{owner.lifecycle.removeObserver(observer)}}
-    val topPage=when(page){Page.ROUTES->Page.ROUTES;Page.SUBSCRIPTIONS,Page.IMPORT->Page.SUBSCRIPTIONS;Page.SETTINGS,Page.SPLIT,Page.EXCEPTIONS,Page.DIAGNOSTICS,Page.REPORT,Page.HELP,Page.ABOUT->Page.SETTINGS;else->Page.VPN}
+    val topPage=when(page){Page.ROUTES->Page.ROUTES;Page.ACCOUNT,Page.SUBSCRIPTIONS,Page.IMPORT->Page.ACCOUNT;Page.SETTINGS,Page.SPLIT,Page.EXCEPTIONS,Page.DIAGNOSTICS,Page.REPORT,Page.HELP,Page.ABOUT->Page.SETTINGS;else->Page.VPN}
     val pendingRules=serviceRunning&&applied!=routingKey(app)
     Scaffold(modifier=Modifier.fillMaxSize().systemBarsPadding(),containerColor=MaterialTheme.colorScheme.background,topBar={
         Row(Modifier.fillMaxWidth().padding(horizontal=20.dp).height(60.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
-            if(page !in listOf(Page.VPN,Page.ROUTES,Page.SUBSCRIPTIONS,Page.SETTINGS))IconButton(onClick={back()},modifier=Modifier.testTag("back")){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Назад")}else Row{Text("Q",color=MaterialTheme.colorScheme.primary,fontWeight=FontWeight.SemiBold,letterSpacing=2.sp);Text("UANTWAY",fontWeight=FontWeight.SemiBold,letterSpacing=2.sp)}
+            if(page !in listOf(Page.VPN,Page.ROUTES,Page.ACCOUNT,Page.SETTINGS))IconButton(onClick={back()},modifier=Modifier.testTag("back")){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Назад")}else Row{Text("Q",color=MaterialTheme.colorScheme.primary,fontWeight=FontWeight.SemiBold,letterSpacing=2.sp);Text("UANTWAY",fontWeight=FontWeight.SemiBold,letterSpacing=2.sp)}
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){Icon(if(online)Icons.Default.Lock else Icons.Default.Info,null,Modifier.size(14.dp),tint=MaterialTheme.colorScheme.onSurfaceVariant);Text(if(online)"VPN активен"else "Ваш VPN",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
         }
     },bottomBar={
-        NavigationBar(containerColor=MaterialTheme.colorScheme.background,tonalElevation=0.dp,modifier=Modifier.border(BorderStroke(1.dp,MaterialTheme.colorScheme.outline))){listOf(Triple(Page.VPN,"VPN",Icons.Default.Home),Triple(Page.ROUTES,"Маршруты",Icons.AutoMirrored.Filled.List),Triple(Page.SUBSCRIPTIONS,"Подписки",Icons.Default.AccountCircle),Triple(Page.SETTINGS,"Настройки",Icons.Default.Settings)).forEach{(id,label,icon)->NavigationBarItem(selected=topPage==id,onClick={go(id)},icon={Icon(icon,null)},label={Text(label,fontSize=11.sp)},modifier=Modifier.testTag("nav-${id.name.lowercase()}"),colors=NavigationBarItemDefaults.colors(selectedIconColor=MaterialTheme.colorScheme.primary,selectedTextColor=MaterialTheme.colorScheme.primary,indicatorColor=MaterialTheme.colorScheme.primary.copy(alpha=.1f)))}}
+        NavigationBar(containerColor=MaterialTheme.colorScheme.background,tonalElevation=0.dp,modifier=Modifier.border(BorderStroke(1.dp,MaterialTheme.colorScheme.outline))){listOf(Triple(Page.VPN,"VPN",Icons.Default.Home),Triple(Page.ROUTES,"Маршруты",Icons.AutoMirrored.Filled.List),Triple(Page.ACCOUNT,"Кабинет",Icons.Default.AccountCircle),Triple(Page.SETTINGS,"Настройки",Icons.Default.Settings)).forEach{(id,label,icon)->NavigationBarItem(selected=topPage==id,onClick={go(id)},icon={Icon(icon,null)},label={Text(label,fontSize=11.sp)},modifier=Modifier.testTag("nav-${id.name.lowercase()}"),colors=NavigationBarItemDefaults.colors(selectedIconColor=MaterialTheme.colorScheme.primary,selectedTextColor=MaterialTheme.colorScheme.primary,indicatorColor=MaterialTheme.colorScheme.primary.copy(alpha=.1f)))}}
     }){padding->
         val scroll=rememberScrollState();LaunchedEffect(page){scroll.scrollTo(0)}
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(scroll).padding(horizontal=22.dp).padding(bottom=24.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
             when(page){
                 Page.VPN->{
                     if(state.profiles.isEmpty()&&!inactive){
-                        Spacer(Modifier.height(36.dp));Heading("Ваш VPN начинается здесь","Добавьте полную ссылку подписки. Маршруты загрузятся автоматически.")
-                        Power(connected=false,label="Добавить",enabled=false,onClick={})
-                        Primary("Добавить подписку",Modifier.testTag("add-first")){go(Page.IMPORT)}
+                        if(source?.api==true){
+                            Spacer(Modifier.height(36.dp));Heading("Пока нет доступных маршрутов","Обновите подписку через минуту. Проверить состояние доступа можно в кабинете.")
+                            Primary("Обновить маршруты",enabled=!busy){model.refresh()}
+                            Secondary("Открыть кабинет"){go(Page.ACCOUNT)}
+                        }else{
+                        Spacer(Modifier.height(36.dp));Heading("Добро пожаловать в Quantway","Войдите в свой аккаунт или добавьте подписку другого VPN-провайдера.")
+                        Primary(if(cabinetState.authenticated)"Открыть кабинет"else "Войти в Quantway",Modifier.testTag("welcome-login")){go(Page.ACCOUNT)}
+                        Secondary("У меня есть ссылка подписки",modifier=Modifier.testTag("add-first")){go(Page.IMPORT)}
+                        }
                     }else if(inactive){
                         Spacer(Modifier.height(30.dp));Heading(if(model.subscriptionStatus()=="paused")"Подписка на паузе"else "Продолжим?",if(model.subscriptionStatus()=="paused")"Оставшиеся дни сохраняются. Возобновите доступ в кабинете."else "Продлите подписку, чтобы снова подключиться.")
                         Panel{Text(source?.name?:"Quantway",style=MaterialTheme.typography.labelLarge);model.days()?.let{Text("$it дней",fontSize=35.sp,fontWeight=FontWeight.Medium)};Primary("Открыть кабинет"){openCabinet()}}
@@ -138,10 +157,11 @@ private data class Confirmation(val title:String,val message:String,val action:(
                         Muted("Время ответа относится к проверочному запросу, а не к скорости загрузки. После смены сети замеры считаются устаревшими.")
                     }
                 }
+                Page.ACCOUNT->{CabinetScreen(cabinet,onSubscriptions={go(Page.SUBSCRIPTIONS)},onLink={url->model.importLink(url);go(if(serviceRunning)Page.SUBSCRIPTIONS else Page.VPN)})}
                 Page.SUBSCRIPTIONS->{
                     Heading("Подписки","Ваш VPN и другие подключения — в одном месте.")
                     state.sources.forEach{src->val selectedSource=src.id==state.sourceId;Panel(selected=selectedSource){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(src.name,style=MaterialTheme.typography.titleMedium);if(selectedSource)Tag("Выбрана")};src.cache.optJSONObject("subscription")?.let{info->Text("${info.optInt("days_available")} дней",fontSize=32.sp,fontWeight=FontWeight.Medium);Muted(when(info.optString("status")){"active"->"Подписка активна";"paused"->"На паузе · дни сохраняются";else->"Доступ закончился"})};val count=src.cache.optJSONArray("profiles")?.length()?:0;Muted("$count маршрутов · ${relativeTime(src.updatedAt)}");if(src.cache.optInt("skipped")>0)Muted("Неподдерживаемых конфигураций пропущено: ${src.cache.optInt("skipped")}")
-                        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){if(!selectedSource)Button(onClick={val change={model.activate(src.id);go(Page.VPN)};if(serviceRunning)confirmation=Confirmation("Сменить подписку?","Переподключимся через выбранного провайдера. До подтверждения текущий VPN продолжает работать."){change();connect()}else change()},enabled=!busy,modifier=Modifier.weight(1f)){Text("Выбрать")};if(src.api)OutlinedButton(onClick={val origin=SubscriptionLink.parse(src.url).origin;context.startActivity(Intent(context,AccountActivity::class.java).putExtra("url",origin+"/account"))},modifier=Modifier.weight(1f)){Text("Кабинет ↗")};IconButton(onClick={confirmation=Confirmation("Удалить подписку?","Ссылка будет удалена с этого телефона. Подписка у провайдера сохранится."){if(selectedSource&&serviceRunning)model.disconnect(context);model.removeSource(src.id)}}){Icon(Icons.Default.Delete,"Удалить подписку ${src.name}")}}
+                        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){if(!selectedSource)Button(onClick={val change={model.activate(src.id);go(Page.VPN)};if(serviceRunning)confirmation=Confirmation("Сменить подписку?","Переподключимся через выбранного провайдера. До подтверждения текущий VPN продолжает работать."){change();connect()}else change()},enabled=!busy,modifier=Modifier.weight(1f)){Text("Выбрать")};if(src.api)OutlinedButton(onClick={openCabinet()},modifier=Modifier.weight(1f)){Text("Кабинет")};IconButton(onClick={confirmation=Confirmation("Удалить подписку?","Ссылка будет удалена с этого телефона. Подписка у провайдера сохранится."){if(selectedSource&&serviceRunning)model.disconnect(context);model.removeSource(src.id)}}){Icon(Icons.Default.Delete,"Удалить подписку ${src.name}")}}
                     }}
                     Secondary("Добавить подписку",enabled=!busy,modifier=Modifier.testTag("add-subscription")){go(Page.IMPORT)}
                     if(source!=null)Setting("Обновить маршруты","Загрузить изменения провайдера",Icons.Default.Refresh){model.refresh()}

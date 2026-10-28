@@ -3,6 +3,8 @@ package link.quantway.android
 import android.app.Application
 
 class QuantwayApplication : Application() {
+    @Volatile var cabinetTestOrigin:String?=null
+    val cabinet by lazy {CabinetApi(this)}
     var subscription:SubscriptionLink?=null
     @Volatile var routingPolicy:org.json.JSONObject?=null
     val preferences by lazy {AppPreferences(this)}

@@ -14,12 +14,12 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 // Credentials and cached profiles never enter ordinary preferences or backups.
-class SubscriptionStore(context:Context) {
-    private val file=AtomicFile(File(context.noBackupFilesDir,"subscriptions.enc"))
+class SubscriptionStore(context:Context, filename:String="subscriptions.enc", private val alias:String="quantway-subscriptions") {
+    private val file=AtomicFile(File(context.noBackupFilesDir,filename))
     private fun key():SecretKey {
         val store=KeyStore.getInstance("AndroidKeyStore").apply{load(null)}
-        (store.getKey("quantway-subscriptions",null) as? SecretKey)?.let{return it}
-        return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore").apply{init(KeyGenParameterSpec.Builder("quantway-subscriptions",KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT).setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())}.generateKey()
+        (store.getKey(alias,null) as? SecretKey)?.let{return it}
+        return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore").apply{init(KeyGenParameterSpec.Builder(alias,KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT).setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())}.generateKey()
     }
     @Synchronized fun read():JSONObject {
         if(!file.baseFile.exists())return JSONObject().put("sources",JSONArray())

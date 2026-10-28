@@ -33,7 +33,7 @@ class AppNavigationTest {
         android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("svc wifi enable")).use{it.readBytes()}
         waitFor("Wi-Fi not ready before UI test",60_000){app.physical.state.value.label=="Wi-Fi"}
         val fixture=request("/fixture");val link=fixture.getString("subscription_url")
-        ui.onNodeWithTag("nav-subscriptions").performClick()
+        ui.onNodeWithTag("nav-account").performClick();ui.onNodeWithTag("manage-subscriptions").performScrollTo().performClick()
         ui.onNodeWithTag("add-subscription").performScrollTo().performClick()
         ui.onNodeWithTag("subscription-link").performTextInput(link)
         ui.onNodeWithTag("import-submit").performClick()
@@ -84,7 +84,7 @@ class AppNavigationTest {
         ui.onNodeWithTag("nav-settings").performClick();ui.onNodeWithText("Диагностика",substring=false).performScrollTo().performClick();ui.onNodeWithText("Подготовить отчёт").performScrollTo().performClick()
         val report=ui.onNodeWithTag("diagnostic-report").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString()
         assertFalse(report.contains(fixture.getString("token")));assertFalse(report.contains("PrivateKey"));assertFalse(report.contains("vless://"))
-        ui.onNodeWithTag("nav-subscriptions").performClick();ui.onNodeWithTag("add-subscription").performScrollTo().performClick()
+        ui.onNodeWithTag("nav-account").performClick();ui.onNodeWithTag("manage-subscriptions").performScrollTo().performClick();ui.onNodeWithTag("add-subscription").performScrollTo().performClick()
         ui.onNodeWithTag("subscription-link").performTextInput("$origin/external-subscription")
         ui.onNodeWithTag("import-submit").performClick()
         waitFor("external subscription did not import"){app.subscriptions.read().getJSONArray("sources").let{a->(0 until a.length()).any{!a.getJSONObject(it).getBoolean("api")}}}
