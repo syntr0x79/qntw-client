@@ -59,3 +59,27 @@ func CheckVPN(controlURL string) (bool, error) {
 	io.Copy(io.Discard, io.LimitReader(response.Body, 16<<10))
 	return response.StatusCode >= 200 && response.StatusCode < 300, nil
 }
+
+// CheckSystemVPN verifies the path used by ordinary Android applications,
+// including VPN DNS and the TUN input, rather than only the internal outbound.
+func CheckSystemVPN(controlURL string) (bool, error) {
+	u, e := url.Parse(controlURL)
+	if e != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil {
+		return false, errors.New("HTTPS control URL required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tr := &http.Transport{DisableKeepAlives: true}
+	defer tr.CloseIdleConnections()
+	req, e := http.NewRequestWithContext(ctx, http.MethodGet, controlURL, nil)
+	if e != nil {
+		return false, e
+	}
+	response, e := (&http.Client{Transport: tr, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}).Do(req)
+	if e != nil {
+		return false, nil
+	}
+	defer response.Body.Close()
+	io.Copy(io.Discard, io.LimitReader(response.Body, 16<<10))
+	return response.StatusCode >= 200 && response.StatusCode < 300, nil
+}

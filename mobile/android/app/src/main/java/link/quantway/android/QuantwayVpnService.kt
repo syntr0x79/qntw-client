@@ -52,12 +52,14 @@ class QuantwayVpnService : VpnService() {
                     val connected = lifecycleGate.withLock {
                         Engine.stopVPN(); activeEngine.value = "";phase.value="connecting";activeProfile.value=null;startedAt.value=0
                         if (network.network == null) { phase.value="waiting";state.value = "Ожидание сети"; return@withLock false }
+                        var attemptStage="route probe"
                         try {
                             state.value = "Подбираем подключение…"
                             val preferred = selected ?: return@withLock false
                             var profile: JSONObject? = null
                             for (candidate in (listOf(preferred) + if(automaticMode)profiles else emptyList()).distinctBy { it.getString("job_id") }.sortedBy{it.getString("job_id")==failedProfile}.take(6)) {
                                 val result = ProbeExecutor(physical).execute(candidate, controlURL, 5_000, network)
+                                android.util.Log.i("QuantwayVPN","Route probe ${candidate.optString("engine")} ${result.optString("outcome")} ${result.optString("reason_code")}")
                                 if (result.getString("outcome") == "ok") { profile = candidate; break }
                             }
                             ensureActive()
@@ -75,13 +77,19 @@ class QuantwayVpnService : VpnService() {
                             val policy=app.routingPolicy?.let{JSONObject(it.toString())}?:JSONObject()
                             policy.put("enabled",app.preferences.state.value.split&&app.routingPolicy!=null).put("exceptions",org.json.JSONArray(app.preferences.state.value.exceptions))
                             Engine.configureRouting(policy.toString())
+                            attemptStage="tunnel startup"
                             Engine.startVPN(tun!!.fd.toLong(), chosen.toString(), physical.adapter(network))
+                            // Validate the TUN/DNS path before claiming that apps have internet.
+                            attemptStage="system network selection"
+                            check(withTimeoutOrNull(5_000){while(isActive){val manager=getSystemService(android.net.ConnectivityManager::class.java);if(manager.getNetworkCapabilities(manager.activeNetwork)?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)==true)return@withTimeoutOrNull true;delay(100)};false}==true)
+                            attemptStage="system internet check"
+                            check(Engine.checkSystemVPN(controlURL)){"Системное VPN-подключение недоступно"}
                             appliedRules.value=routingKey(app)
                             activeEngine.value = kind;activeProfile.value=chosen;startedAt.value=android.os.SystemClock.elapsedRealtime();phase.value="connected"
                             state.value = "Подключён · ${chosen.getString("label")} · ${network.label}"
                             true
                         } catch (cancelled: CancellationException) { throw cancelled }
-                        catch (_: Exception) {phase.value="reconnecting"; state.value = "Восстанавливаем соединение…"; false }
+                        catch (error: Exception) {android.util.Log.w("QuantwayVPN","Connection failed at $attemptStage (${error.javaClass.simpleName})");failedProfile=selected?.optString("job_id");phase.value="reconnecting"; state.value = "Восстанавливаем соединение…"; false }
                     }
                     if (network.network == null) awaitCancellation()
                     if(connected) {
@@ -91,6 +99,7 @@ class QuantwayVpnService : VpnService() {
                                 val manager=getSystemService(android.net.ConnectivityManager::class.java)
                                 check(manager.getNetworkCapabilities(manager.activeNetwork)?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)==true)
                                 check(Engine.checkVPN(controlURL))
+                                check(Engine.checkSystemVPN(controlURL))
                             }catch(_:Exception){ensureActive();phase.value="reconnecting";state.value="Восстанавливаем соединение…";failedProfile=selected?.getString("job_id");break}
                         }
                     }

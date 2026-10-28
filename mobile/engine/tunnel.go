@@ -30,11 +30,17 @@ var vpn struct {
 }
 
 type xrayTunnel struct {
-	core *core.Instance
-	fd   int
+	core    *core.Instance
+	fd      int
+	sockets *socketOwner
 }
 
-func (t *xrayTunnel) Close() error { err := t.core.Close(); unix.Close(t.fd); return err }
+func (t *xrayTunnel) Close() error {
+	t.sockets.close()
+	err := t.core.Close()
+	unix.Close(t.fd)
+	return err
+}
 
 // StartVPN duplicates the Android-owned descriptor; StopVPN closes only its copy.
 // Profiles use the same versioned outbound/config payload as the probe jobs.
@@ -70,6 +76,12 @@ func StartVPN(fd int, jobJSON string, network Network) error {
 			state.Lock()
 			state.tunnelNetwork = nil
 			state.Unlock()
+		}
+	}()
+	owner := newSocketOwner(context.Background(), network)
+	defer func() {
+		if !success {
+			owner.close()
 		}
 	}()
 	policy := currentRouting()
@@ -134,7 +146,7 @@ func StartVPN(fd int, jobJSON string, network Network) error {
 		if stack == nil {
 			config.Outbound[0] = &outbound
 		}
-		instance, err := core.New(config)
+		instance, err := core.NewWithContext(context.WithValue(context.Background(), socketOwnerKey{}, owner), config)
 		if err != nil {
 			return err
 		}
@@ -146,11 +158,24 @@ func StartVPN(fd int, jobJSON string, network Network) error {
 				return err
 			}
 		}
+		state.Lock()
+		state.tunnelCore, state.tunnelOwner = instance, owner
+		state.Unlock()
+		defer func() {
+			if !success {
+				owner.close()
+				state.Lock()
+				if state.tunnelCore == instance {
+					state.tunnelCore, state.tunnelOwner = nil, nil
+				}
+				state.Unlock()
+			}
+		}()
 		if err = instance.Start(); err != nil {
 			instance.Close()
 			return err
 		}
-		vpn.closer = &xrayTunnel{instance, copyFD}
+		vpn.closer = &xrayTunnel{core: instance, fd: copyFD, sockets: owner}
 	case "amneziawg":
 		options := awgprobe.Options{Resolve: func(ctx context.Context, host string) (netip.Addr, error) {
 			ip, err := resolve(ctx, network, host)
@@ -187,5 +212,6 @@ func StopVPN() {
 	}
 	state.Lock()
 	state.tunnelNetwork = nil
+	state.tunnelCore, state.tunnelOwner = nil, nil
 	state.Unlock()
 }

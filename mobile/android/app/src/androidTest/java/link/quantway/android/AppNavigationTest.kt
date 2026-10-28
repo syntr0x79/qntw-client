@@ -56,9 +56,10 @@ class AppNavigationTest {
         val c=URL("https://example.com/?quantway-ui=awg-split").openConnection() as HttpURLConnection;c.connectTimeout=10_000;c.readTimeout=10_000
         try{assertEquals("AWG routing engine did not carry system HTTPS",200,c.responseCode);c.inputStream.close()}finally{c.disconnect()}
         assertTrue("native outbound health check failed",engine.Engine.checkVPN("https://example.com/"))
+        assertTrue("system VPN path health check failed",engine.Engine.checkSystemVPN("https://example.com/"))
         screenshot("home")
         ui.onNodeWithTag("nav-routes").performClick()
-        val other=(0 until profiles.length()).map{profiles.getJSONObject(it)}.first{it.getString("engine")=="xray"}
+        val other=(0 until profiles.length()).map{profiles.getJSONObject(it)}.first{it.getString("engine")=="xray"&&it.optString("transport")=="xhttp"}
         val previous=QuantwayVpnService.selected!!.getString("job_id")
         ui.onNodeWithTag("route-${other.getString("job_id")}").performScrollTo().performClick()
         ui.onNodeWithText("Сменить маршрут?").assertExists()
@@ -73,11 +74,15 @@ class AppNavigationTest {
         ui.onNodeWithText("Добавить исключение").performClick();assertTrue(app.preferences.state.value.exceptions.contains("direct.example"))
         ui.onNodeWithContentDescription("Удалить direct.example").performScrollTo().performClick();assertFalse(app.preferences.state.value.exceptions.contains("direct.example"))
         ui.onNodeWithTag("nav-settings").performClick();screenshot("settings")
-        ui.onNodeWithTag("nav-vpn").performClick();ui.onNodeWithText("Проверить маршруты").performScrollTo().performClick();ui.onNodeWithContentDescription("Делиться результатами").performScrollTo().performClick();ui.onNodeWithTag("start-probe").performScrollTo().performClick()
+        ui.onNodeWithTag("nav-vpn").performClick();ui.onNodeWithText("Проверить маршруты").performScrollTo().performClick();ui.onNodeWithContentDescription("Делиться результатами").performScrollTo().performClick();request("/arm-delayed-report");ui.onNodeWithTag("start-probe").performScrollTo().performClick()
         ui.onNodeWithTag("probe-progress").assertIsDisplayed()
         ui.onNodeWithTag("probe-percent").assertIsDisplayed()
-        waitFor("probe did not return recommendation",120_000){ui.onAllNodesWithText("Есть рабочие маршруты").fetchSemanticsNodes().isNotEmpty()}
         val model=androidx.lifecycle.ViewModelProvider(ui.activity)[ProbeViewModel::class.java]
+        waitFor("probe did not return recommendation",120_000){!model.state.value.running&&model.state.value.recommendedId.isNotEmpty()}
+        ui.onNodeWithText("Есть рабочие маршруты").assertIsDisplayed()
+        waitFor("slow report did not start"){request("/status").optBoolean("report_in_flight")}
+        assertFalse("slow report blocked completed probe",model.state.value.running)
+        assertTrue("recommendation waited for report upload",model.state.value.recommendedId.isNotBlank())
         ui.onNodeWithTag("recommended-route").assertIsDisplayed()
         ui.onNodeWithTag("use-recommended-route").assertIsDisplayed()
         ui.onNodeWithTag("probe-progress").assertDoesNotExist()
@@ -86,6 +91,10 @@ class AppNavigationTest {
         assertEquals("probe lost results",profiles.length(),model.state.value.observations.size)
         assertTrue("same-country masks are indistinguishable",model.state.value.rows.distinct().size==model.state.value.rows.size)
         assertEquals("probe silently changed active route",other.getString("job_id"),QuantwayVpnService.activeProfile.value!!.getString("job_id"))
+        val afterProbe=URL("https://example.com/?quantway-ui=after-parallel-probe").openConnection() as HttpURLConnection
+        afterProbe.connectTimeout=10_000;afterProbe.readTimeout=10_000
+        try{assertEquals("VPN internet stopped after parallel probing",200,afterProbe.responseCode);afterProbe.inputStream.close()}finally{afterProbe.disconnect()}
+        waitFor("queued report was not delivered",20_000){!request("/status").optBoolean("report_in_flight")&&model.state.value.pending==0}
         ui.onNodeWithTag("nav-routes").performClick();ui.onNodeWithTag("route-${other.getString("job_id")}").assertExists();screenshot("routes");ui.onNodeWithTag("nav-vpn").performClick();ui.onNodeWithText("Вы в сети").assertExists();screenshot("home")
         val suggestions=model.state.value.profiles.filter{p->p.optString("job_id")!=other.getString("job_id")&&model.state.value.observations[p.optString("job_id")]?.let{it.epoch==app.physical.state.value.epoch&&it.outcome=="ok"}==true}.sortedBy{model.state.value.observations[it.getString("job_id")]!!.elapsedMS}.take(3)
         assertEquals("home should have three measured alternatives",3,suggestions.size)

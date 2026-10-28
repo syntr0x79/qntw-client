@@ -43,23 +43,14 @@ var state struct {
 	generation    uint64
 	network       Network
 	tunnelNetwork Network
+	tunnelCore    *core.Instance
+	tunnelOwner   *socketOwner
 }
 
 func init() {
-	if err := internet.RegisterDialerController(func(_, _ string, raw syscall.RawConn) error {
-		state.Lock()
-		n := state.network
-		if n == nil {
-			n = state.tunnelNetwork
-		}
-		state.Unlock()
-		if n == nil {
-			return errors.New("mobile: physical network unavailable")
-		}
-		return prepare(raw, n)
-	}); err != nil {
-		panic(err)
-	}
+	// Xray's default controller logs binding failures and continues dialing.
+	// Our dialer propagates them and gives probes a separate socket lifetime.
+	internet.UseAlternativeSystemDialer(&mobileSystemDialer{})
 }
 
 func prepare(raw syscall.RawConn, n Network) error {
@@ -179,6 +170,11 @@ func ProbeOnNetwork(jobJSON string, controlURL string, timeoutMS int, network Ne
 		return string(data), nil
 	}
 	defer release()
+	owner := newSocketOwner(ctx, network)
+	ctx = context.WithValue(ctx, socketOwnerKey{}, owner)
+	stopSockets := context.AfterFunc(ctx, owner.close)
+	defer stopSockets()
+	defer owner.close()
 	started := time.Now()
 	var unprobeable bool
 	switch job.Engine {

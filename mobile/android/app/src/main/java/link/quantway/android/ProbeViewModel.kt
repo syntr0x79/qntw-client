@@ -29,6 +29,7 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
     private var subscription:SubscriptionLink?=application.subscription
     private var work:Job?=null
     private val probeGeneration=java.util.concurrent.atomic.AtomicLong()
+    private var reportWork:Job?=null
     @Volatile private var cancelled=false
     init {try{val saved=application.subscriptions.read();val sources=saved.optJSONArray("sources")?:JSONArray();val list=(0 until sources.length()).map{SubscriptionSource.from(sources.getJSONObject(it))};val active=list.firstOrNull{it.id==saved.optString("active")}?:list.firstOrNull();if(active!=null){mutable.value=mutable.value.copy(sources=list);activate(active.id,false);mutable.value=mutable.value.copy(selectedId=saved.optString("selected",mutable.value.selectedId),automatic=saved.optBoolean("automatic",true));QuantwayVpnService.automaticMode=mutable.value.automatic}}catch(_:Exception){mutable.value=mutable.value.copy(message="Добавьте подписку повторно: сохранённые данные недоступны")}}
     fun activeSource()=mutable.value.sources.firstOrNull{it.id==mutable.value.sourceId}
@@ -119,7 +120,7 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
                 }
                 if(physical.state.value.epoch!=snapshot.epoch)changed=true
                 ensureActive()
-                if(upload&&!isExternal&&jobs.length()>0&&api!=null&&link!=null){val report=JSONObject().put("report_id",UUID.randomUUID().toString()).put("run_id",run.getString("run_id")).put("network_epoch",snapshot.epoch).put("app_version",BuildConfig.VERSION_NAME).put("engine_version",Engine.version()).put("results",results);val envelope=JSONObject().put("origin",link.origin).put("scope",api.scope).put("expires_at",run.getString("expires_at")).put("report",report);val temp=File(directory,"${report.getString("report_id")}.tmp");temp.writeText(envelope.toString());check(temp.renameTo(File(directory,"${report.getString("report_id")}.json")));try{flush(api,link.origin)}catch(_:Exception){}}
+                if(upload&&!isExternal&&jobs.length()>0&&api!=null&&link!=null){val report=JSONObject().put("report_id",UUID.randomUUID().toString()).put("run_id",run.getString("run_id")).put("network_epoch",snapshot.epoch).put("app_version",BuildConfig.VERSION_NAME).put("engine_version",Engine.version()).put("results",results);val envelope=JSONObject().put("origin",link.origin).put("scope",api.scope).put("expires_at",run.getString("expires_at")).put("report",report);val temp=File(directory,"${report.getString("report_id")}.tmp");temp.writeText(envelope.toString());check(temp.renameTo(File(directory,"${report.getString("report_id")}.json")));sendReports(api,link.origin)}
                 ensureActive()
                 if(changed){mutable.value=mutable.value.copy(rows=emptyList(),observations=emptyMap());continue}
                 val successful=(0 until results.length()).map{results.getJSONObject(it)}.filter{it.getString("outcome")=="ok"}.minByOrNull{it.getLong("elapsed_ms")}
@@ -130,7 +131,15 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
             }}catch(_:CancellationException){throw CancellationException()}catch(e:Exception){mutable.value=mutable.value.copy(message=message(e))}finally{if(probeGeneration.get()==generation)mutable.update{it.copy(running=false,activity="",pending=directory.listFiles{f->f.extension=="json"}?.size?:0)}}
         }
     }
-    fun retry(){val link=subscription?:return;viewModelScope.launch(Dispatchers.IO){try{flush(ProbeApi(link.origin,link.token){physical.state.value.network},link.origin);mutable.value=mutable.value.copy(message="Очередь отправлена",pending=directory.listFiles{f->f.extension=="json"}?.size?:0)}catch(_:Exception){mutable.value=mutable.value.copy(message="Отправка отложена")}}}
+    fun retry(){val link=subscription?:return;sendReports(ProbeApi(link.origin,link.token){physical.state.value.network},link.origin)}
+    private fun sendReports(api:ProbeApi,origin:String){
+        synchronized(directory){
+            if(reportWork?.isActive==true)return
+            reportWork=viewModelScope.launch(Dispatchers.IO){
+                try{flush(api,origin)}catch(_:Exception){}finally{mutable.update{it.copy(pending=directory.listFiles{f->f.extension=="json"}?.size?:0)}}
+            }
+        }
+    }
     private fun flush(api:ProbeApi,origin:String){directory.listFiles{f->f.extension=="json"}?.forEach{file->val e=JSONObject(file.readText());if(!Instant.parse(e.getString("expires_at")).isAfter(Instant.now())){file.delete();return@forEach};if(e.getString("origin")!=origin||e.optString("scope")!=api.scope)return@forEach;if(api.post("reports",e.getJSONObject("report")).optBoolean("accepted"))file.delete()}}
     fun diagnosticText():String {val s=mutable.value;return buildString{appendLine("Quantway Android ${BuildConfig.VERSION_NAME}");appendLine(Engine.version());appendLine("Сеть: ${physical.state.value.label}");appendLine("VPN: ${QuantwayVpnService.phase.value}");s.observations.values.forEach{appendLine("${it.outcome}: ${it.elapsedMS} ms · ${it.network}")}}}
     private fun message(e:Exception):String=when(e){is ApiFailure->when(e.status){401->"Ссылка недействительна";402->"Подписка неактивна — откройте кабинет";404->"Сервис не поддерживает приложение";else->"Сервис временно недоступен"};else->"Не удалось загрузить или проверить данные. Проверьте ссылку и сеть."}
