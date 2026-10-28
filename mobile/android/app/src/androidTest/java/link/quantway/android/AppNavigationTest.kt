@@ -74,8 +74,14 @@ class AppNavigationTest {
         ui.onNodeWithContentDescription("Удалить direct.example").performScrollTo().performClick();assertFalse(app.preferences.state.value.exceptions.contains("direct.example"))
         ui.onNodeWithTag("nav-settings").performClick();screenshot("settings")
         ui.onNodeWithTag("nav-vpn").performClick();ui.onNodeWithText("Проверить маршруты").performScrollTo().performClick();ui.onNodeWithContentDescription("Делиться результатами").performScrollTo().performClick();ui.onNodeWithTag("start-probe").performScrollTo().performClick()
+        ui.onNodeWithTag("probe-progress").assertIsDisplayed()
+        ui.onNodeWithTag("probe-percent").assertIsDisplayed()
         waitFor("probe did not return recommendation",120_000){ui.onAllNodesWithText("Есть рабочие маршруты").fetchSemanticsNodes().isNotEmpty()}
         val model=androidx.lifecycle.ViewModelProvider(ui.activity)[ProbeViewModel::class.java]
+        ui.onNodeWithTag("recommended-route").assertIsDisplayed()
+        ui.onNodeWithTag("use-recommended-route").assertIsDisplayed()
+        ui.onNodeWithTag("probe-progress").assertDoesNotExist()
+        model.state.value.rows.forEach { ui.onNodeWithText(it).assertDoesNotExist() }
         assertEquals("probe did not check the entire catalog",profiles.length(),model.state.value.completed)
         assertEquals("probe lost results",profiles.length(),model.state.value.observations.size)
         assertTrue("same-country masks are indistinguishable",model.state.value.rows.distinct().size==model.state.value.rows.size)

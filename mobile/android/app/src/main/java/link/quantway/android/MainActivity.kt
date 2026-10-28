@@ -181,15 +181,34 @@ private data class Confirmation(val title:String,val message:String,val action:(
                 }
                 Page.PROBE->{
                     val checking=state.activity=="probe"&&busy
-                    Heading(if(checking)"Ищем рабочий путь"else if(state.recommendedId.isNotEmpty())"Есть рабочие маршруты"else "Проверка маршрутов",if(checking)state.message else "Проверим доступность в вашей текущей сети.")
-                    if(checking){LinearProgressIndicator(progress={if(state.total>0)state.completed.toFloat()/state.total else 0f},modifier=Modifier.fillMaxWidth());Text("${state.completed} из ${state.total}",style=MaterialTheme.typography.bodySmall)}
-                    if(!checking&&state.checkedAt>0L)Muted("Проверено ${state.completed} из ${state.total}")
-                    if(!checking&&state.checkedAt==0L){Panel{Step("1","Проверим доступность маршрутов");Step("2","Сравним время ответа");Step("3","Предложим рабочий вариант")};Muted(if(serviceRunning)"VPN останется включён. Маршрут не сменится без подтверждения."else "Проверим все маршруты подписки. На каждый вариант — до 8 секунд. Для нового AWG-подключения повторим попытку в пределах этого времени.")}
-                    state.rows.forEach{Text(it,style=MaterialTheme.typography.bodyMedium)}
-                    if(!checking&&state.recommendedId.isNotBlank()){val best=state.profiles.firstOrNull{it.optString("job_id")==state.recommendedId};best?.let{Panel(selected=true){Tag("Рекомендуем");Text(it.optString("label"),style=MaterialTheme.typography.titleLarge);Muted(it.protocolLabel());ObservationLabel(state.observations[it.optString("job_id")],network.epoch)};Primary(if(online&&active?.optString("job_id")==state.recommendedId)"Оставить текущее подключение"else "Использовать этот маршрут"){if(online&&active?.optString("job_id")==state.recommendedId)go(Page.VPN)else choose(state.recommendedId)}}}
+                    LaunchedEffect(checking,state.recommendedId){scroll.animateScrollTo(0)}
+                    Heading(if(checking)"Ищем рабочий путь"else if(state.recommendedId.isNotEmpty())"Есть рабочие маршруты"else "Проверка маршрутов")
+                    if(checking){
+                        ProbeProgress(state.completed,state.total)
+                        if(state.message.startsWith("Ожидаем"))Muted(state.message)
+                    }else if(state.recommendedId.isNotBlank()){
+                        val best=state.profiles.firstOrNull{it.optString("job_id")==state.recommendedId}
+                        best?.let{
+                            Panel(selected=true,modifier=Modifier.testTag("recommended-route")){
+                                Tag("Рекомендуем")
+                                Text(it.optString("label"),style=MaterialTheme.typography.titleLarge)
+                                Muted(it.protocolLabel())
+                                ObservationLabel(state.observations[it.optString("job_id")],network.epoch)
+                            }
+                            Primary(if(online&&active?.optString("job_id")==state.recommendedId)"Оставить текущее подключение"else "Использовать этот маршрут",modifier=Modifier.testTag("use-recommended-route")){
+                                if(online&&active?.optString("job_id")==state.recommendedId)go(Page.VPN)else choose(state.recommendedId)
+                            }
+                        }
+                        Muted("Проверено ${state.completed} из ${state.total}")
+                    }else{
+                        Muted(if(state.checkedAt>0L||state.message.startsWith("Не ")||state.message=="Проверка остановлена")state.message else "Найдём рабочий маршрут в вашей текущей сети.")
+                        if(serviceRunning)Muted("VPN останется включён. Маршрут не сменится без подтверждения.")
+                    }
                     if(checking)Secondary("Остановить проверку",modifier=Modifier.testTag("cancel-probe")){model.cancel()}else if(state.recommendedId.isNotBlank())Secondary("Проверить снова",enabled=!busy,modifier=Modifier.testTag("start-probe")){model.run(prefs.shareReports)}else Primary("Начать проверку",enabled=!busy&&state.profiles.isNotEmpty(),modifier=Modifier.testTag("start-probe")){model.run(prefs.shareReports)}
+                    if(!checking){
                     if(source?.api==true)Toggle("Делиться результатами","Доступность, время ответа и тип сети",prefs.shareReports){model.preferences.update(prefs.copy(shareReports=it))}else Muted("Для внешнего провайдера проверки выполняются только на этом телефоне, без отправки отчётов Quantway.")
                     if(state.checkedAt>0)SecondaryAction("Все результаты"){go(Page.ROUTES)}
+                    }
                 }
                 Page.DETAILS->{Heading("О соединении");Panel{Detail("Состояние",if(online)"Подключено"else "VPN выключен");selected?.let{Detail("Маршрут",it.optString("label"));Detail("Протокол",it.protocolLabel())};Detail("Сеть",network.label);Detail("Режим",if(state.automatic)"Автоматически"else "Вручную");if(online)Detail("Время сеанса",formatDuration(elapsed));Detail("Подписка",source?.name?:"—")};Setting("Изменить маршрут","Страна и способ подключения",Icons.AutoMirrored.Filled.List){go(Page.ROUTES)};Setting("Обход VPN","Правила маршрутизации",Icons.Default.Settings){go(Page.SPLIT)};Secondary("Переподключиться",enabled=state.profiles.isNotEmpty()){connect()}}
                 Page.SETTINGS->{Heading("Настройки");Section("ПОДКЛЮЧЕНИЕ");Toggle("Восстанавливать VPN","После смены сети и обрыва связи",prefs.autoRestore){model.preferences.update(prefs.copy(autoRestore=it))};Setting("Обход VPN",if(prefs.split)"Россия и локальные сети — напрямую"else "Весь трафик — через VPN",Icons.Default.Settings){go(Page.SPLIT)};Setting("Диагностика","Проверки, результаты и отчёты",Icons.Default.Info){go(Page.DIAGNOSTICS)};Section("ПРИЛОЖЕНИЕ");Text("Оформление",style=MaterialTheme.typography.titleSmall);FlowRow(horizontalArrangement=Arrangement.spacedBy(7.dp)){listOf("system" to "Авто","dark" to "Тёмное","light" to "Светлое").forEach{(key,label)->FilterChip(selected=prefs.theme==key,onClick={model.preferences.update(prefs.copy(theme=key))},label={Text(label)},modifier=Modifier.testTag("theme-$key"))}};Setting("Помощь","Если подключение не работает",Icons.Default.Info){go(Page.HELP)};Setting("О приложении","Quantway для Android",Icons.Default.Info){go(Page.ABOUT)}}
@@ -212,7 +231,7 @@ private fun relativeTime(at:Long):String{val seconds=((System.currentTimeMillis(
 @Composable internal fun Heading(title:String,subtitle:String=""){Column(Modifier.fillMaxWidth().padding(top=4.dp,bottom=4.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text(title,fontSize=26.sp,lineHeight=32.sp,fontWeight=FontWeight.Medium,letterSpacing=(-.4).sp);if(subtitle.isNotEmpty())Muted(subtitle)}}
 @Composable private fun Muted(text:String){Text(text,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
 @Composable private fun Tag(text:String){Text(text,modifier=Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha=.1f),RoundedCornerShape(7.dp)).padding(horizontal=8.dp,vertical=4.dp),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)}
-@Composable private fun Panel(selected:Boolean=false,content:@Composable ColumnScope.()->Unit){Surface(modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(22.dp),color=if(selected)MaterialTheme.colorScheme.primary.copy(alpha=.08f)else MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,if(selected)MaterialTheme.colorScheme.primary.copy(alpha=.5f)else MaterialTheme.colorScheme.outline)){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)}}
+@Composable private fun Panel(selected:Boolean=false,modifier:Modifier=Modifier,content:@Composable ColumnScope.()->Unit){Surface(modifier=modifier.fillMaxWidth(),shape=RoundedCornerShape(22.dp),color=if(selected)MaterialTheme.colorScheme.primary.copy(alpha=.08f)else MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,if(selected)MaterialTheme.colorScheme.primary.copy(alpha=.5f)else MaterialTheme.colorScheme.outline)){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)}}
 @Composable private fun Primary(text:String,modifier:Modifier=Modifier,enabled:Boolean=true,onClick:()->Unit){Button(onClick=onClick,enabled=enabled,modifier=modifier.fillMaxWidth().heightIn(min=49.dp),shape=RoundedCornerShape(15.dp)){Text(text,textAlign=TextAlign.Center)}}
 @Composable private fun Secondary(text:String,modifier:Modifier=Modifier,enabled:Boolean=true,onClick:()->Unit){OutlinedButton(onClick=onClick,enabled=enabled,modifier=modifier.fillMaxWidth().heightIn(min=49.dp),shape=RoundedCornerShape(15.dp),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outline)){Text(text,textAlign=TextAlign.Center,color=if(enabled)MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)}}
 @Composable private fun Power(connected:Boolean,label:String,enabled:Boolean,onClick:()->Unit){val accent=MaterialTheme.colorScheme.primary;val muted=MaterialTheme.colorScheme.outline;val ink=if(connected)MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface;Box(Modifier.fillMaxWidth().height(185.dp),contentAlignment=Alignment.Center){Box(Modifier.size(170.dp).border(1.dp,if(connected)accent.copy(alpha=.4f)else muted,CircleShape),contentAlignment=Alignment.Center){Box(Modifier.size(145.dp).border(1.dp,muted,CircleShape));Column(Modifier.size(120.dp).clip(CircleShape).background(if(connected)accent else MaterialTheme.colorScheme.surface).border(1.dp,if(connected)accent else muted,CircleShape).clickable(enabled=enabled,role=Role.Button,onClick=onClick).semantics{contentDescription="$label VPN"}.testTag("vpn-power"),verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally){Canvas(Modifier.size(36.dp)){val center=Offset(size.width/2,size.height/2);val r=14.dp.toPx();drawArc(ink,-48f,276f,false,Offset(center.x-r,center.y-r),Size(r*2,r*2),style=Stroke(2.5.dp.toPx(),cap=StrokeCap.Round));drawLine(ink,Offset(center.x,center.y-18.dp.toPx()),Offset(center.x,center.y-3.dp.toPx()),2.5.dp.toPx(),StrokeCap.Round)};Spacer(Modifier.height(9.dp));Text(label,fontSize=12.sp,color=ink)}}}}
@@ -234,5 +253,18 @@ private fun relativeTime(at:Long):String{val seconds=((System.currentTimeMillis(
             }
             if(expanded)Muted(text)
         }
+    }
+}
+
+@Composable internal fun ProbeProgress(completed:Int,total:Int){
+    val progress=if(total>0)(completed.toFloat()/total).coerceIn(0f,1f)else 0f
+    val percent=(progress*100).toInt()
+    Column(Modifier.fillMaxWidth().padding(vertical=24.dp).testTag("probe-progress"),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(16.dp)){
+        Box(contentAlignment=Alignment.Center){
+            if(total>0)CircularProgressIndicator(progress={progress},modifier=Modifier.size(104.dp),strokeWidth=5.dp)
+            else CircularProgressIndicator(modifier=Modifier.size(104.dp),strokeWidth=5.dp)
+            Text("$percent%",style=MaterialTheme.typography.headlineSmall,modifier=Modifier.testTag("probe-percent"))
+        }
+        Muted(if(percent==100)"Завершаем проверку…"else "Проверяем доступность маршрутов…")
     }
 }
