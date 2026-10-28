@@ -4,6 +4,12 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -57,8 +63,21 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
             TextButton(onClick={confirm="Выйти из аккаунта? VPN-подписки останутся на этом телефоне." to {model.logout()}},enabled=!state.busy,modifier=Modifier.testTag("account-logout")){Text("Выйти")}
         }
         "devices"->{
-            CMuted("Используется ${state.data.optInt("in_use")} из ${state.data.optInt("paid")} мест")
-            state.data.optJSONArray("devices").objects().forEach{d->val id=d.getString("id");CPanel{Text(d.optString("name").ifBlank{"Устройство"},style=MaterialTheme.typography.titleMedium);CMuted(if(d.optBoolean("blocked"))"Заблокировано"else if(d.optBoolean("online"))"В сети"else d.optString("last_seen").ifBlank{"Ещё не подключалось"});CButton("Использовать на этом телефоне",!state.busy&&!d.optBoolean("blocked"),"use-device-$id"){confirm="Использовать эту ссылку на телефоне? Если она уже используется другим устройством, возможен конфликт подключений." to {model.useDevice(id,onLink)}};TextButton(onClick={renameId=id;renameText=d.optString("name")},enabled=!state.busy,modifier=Modifier.testTag("rename-device-$id")){Text("Переименовать")};TextButton(onClick={confirm=(if(d.optBoolean("blocked"))"Разблокировать устройство?"else "Заблокировать устройство?") to {model.action("devices/$id/"+if(d.optBoolean("blocked"))"unblock"else "block",reload="devices")}},enabled=!state.busy,modifier=Modifier.testTag("block-device-$id")){Text(if(d.optBoolean("blocked"))"Разблокировать"else "Заблокировать")};TextButton(onClick={confirm="Удалить устройство? Его VPN-ссылка перестанет работать." to {model.action("devices/$id","DELETE",reload="devices")}},enabled=!state.busy){Text("Удалить устройство")}}}
+            val devices=state.devices
+            CMuted("Используется ${devices.optInt("in_use")} из ${devices.optInt("paid")} мест")
+            if(!state.busy&&state.phoneId.isBlank()){
+                CMuted("Не определён профиль этого телефона. Можно выбрать существующий через «⋮» или добавить телефон.")
+                CButton("Добавить этот телефон",devices.optBoolean("link_works"),"bind-account-phone"){model.addPhone(onLink)}
+            }
+            devices.optJSONArray("devices").objects().sortedByDescending{it.optString("id")==state.phoneId}.forEach{d->
+                val id=d.getString("id");val self=id==state.phoneId
+                key(id){CompactDeviceRow(d,self,state.busy,onUse={
+                    if(self)model.useDevice(id,onLink)else confirm="Использовать эту ссылку на телефоне? Если она уже используется другим устройством, возможен конфликт подключений." to {model.useDevice(id,onLink)}
+                },onRename={renameId=id;renameText=d.optString("name")},onBlock={
+                    confirm=(if(d.optBoolean("blocked"))"Разблокировать устройство?"else "Заблокировать устройство?") to {model.action("devices/$id/"+if(d.optBoolean("blocked"))"unblock"else "block",reload="devices")}
+                },onDelete={confirm="Удалить устройство? Его VPN-ссылка перестанет работать." to {model.action("devices/$id","DELETE",reload="devices")}})}
+            }
+            TextButton(onClick={model.open("devices","devices")},enabled=!state.busy,modifier=Modifier.testTag("refresh-account-devices")){Text("Обновить список")}
         }
         "plans"->{
             val plans=state.data.optJSONArray("plans").objects();val methods=state.data.optJSONArray("methods").objects();val choice=state.data.optJSONObject("devices")
@@ -87,4 +106,30 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
     OutlinedButton(onClick=onSubscriptions,modifier=Modifier.fillMaxWidth().testTag("manage-subscriptions")){Text("Мои VPN-подписки")}
     if(renameId.isNotBlank())AlertDialog(onDismissRequest={renameId=""},title={Text("Название устройства")},text={OutlinedTextField(renameText,{renameText=it},singleLine=true)},confirmButton={TextButton(onClick={model.action("devices/$renameId","PATCH",JSONObject().put("name",renameText.trim()),reload="devices");renameId=""},enabled=renameText.isNotBlank()&&!state.busy){Text("Сохранить")}},dismissButton={TextButton(onClick={renameId=""}){Text("Отмена")}})
     confirm?.let{(text,action)->AlertDialog(onDismissRequest={confirm=null},title={Text("Подтвердите действие")},text={Text(text)},confirmButton={TextButton(onClick={confirm=null;action()}){Text("Подтвердить")}},dismissButton={TextButton(onClick={confirm=null}){Text("Отмена")}})}
+}
+
+
+@Composable private fun CompactDeviceRow(device:JSONObject,self:Boolean,busy:Boolean,onUse:()->Unit,onRename:()->Unit,onBlock:()->Unit,onDelete:()->Unit){
+    val id=device.getString("id");val name=device.optString("name").ifBlank{"Устройство"}
+    var menu by remember{mutableStateOf(false)}
+    Surface(modifier=Modifier.fillMaxWidth().testTag("device-card-$id"),shape=RoundedCornerShape(16.dp),color=MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,if(self)MaterialTheme.colorScheme.primary.copy(alpha=.55f)else MaterialTheme.colorScheme.outline)){
+        Row(Modifier.padding(horizontal=14.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
+            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
+                Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                    Text(name,modifier=Modifier.weight(1f,fill=false),style=MaterialTheme.typography.titleSmall,maxLines=1,overflow=TextOverflow.Ellipsis)
+                    if(self)Text("Этот телефон",modifier=Modifier.testTag("current-account-device"),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary,maxLines=1)
+                }
+                Text(if(device.optBoolean("blocked"))"Заблокировано"else if(device.optBoolean("online"))"В сети"else device.optString("last_seen").takeIf{it.isNotBlank()}?.let{"Был: $it"}?:"Ещё не подключалось",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1,overflow=TextOverflow.Ellipsis)
+            }
+            Box{
+                IconButton(onClick={menu=true},enabled=!busy,modifier=Modifier.testTag("device-menu-$id")){Icon(Icons.Default.MoreVert,"Действия с устройством $name")}
+                DropdownMenu(expanded=menu,onDismissRequest={menu=false}){
+                    if(!device.optBoolean("blocked"))DropdownMenuItem(text={Text(if(self)"Обновить подключение"else "Использовать на этом телефоне")},onClick={menu=false;onUse()},modifier=Modifier.testTag("use-device-$id"))
+                    DropdownMenuItem(text={Text("Переименовать")},onClick={menu=false;onRename()},modifier=Modifier.testTag("rename-device-$id"))
+                    DropdownMenuItem(text={Text(if(device.optBoolean("blocked"))"Разблокировать"else "Заблокировать")},onClick={menu=false;onBlock()},modifier=Modifier.testTag("block-device-$id"))
+                    DropdownMenuItem(text={Text("Удалить устройство",color=MaterialTheme.colorScheme.error)},onClick={menu=false;onDelete()},modifier=Modifier.testTag("delete-device-$id"))
+                }
+            }
+        }
+    }
 }

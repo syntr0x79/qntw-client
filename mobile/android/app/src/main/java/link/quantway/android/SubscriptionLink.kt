@@ -5,6 +5,10 @@ import java.net.URI
 // A device link grants configuration/probe access, never account administration.
 data class SubscriptionLink(val origin: String, val token: String) {
     companion object {
+        fun sameDevice(first:String, second:String):Boolean = runCatching {
+            val a=parse(first);val b=parse(second)
+            a.token==b.token&&a.origin.equals(b.origin,ignoreCase=true)
+        }.getOrDefault(false)
         fun parse(text: String): SubscriptionLink {
             val uri = URI(text.trim())
             require((uri.scheme == "https" || (BuildConfig.DEBUG && uri.scheme == "http" && uri.host == "10.0.2.2")) && !uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null) { "Нужна HTTPS ссылка на подписку" }

@@ -82,13 +82,13 @@ private data class Confirmation(val title:String,val message:String,val action:(
     fun back(){go(when(page){Page.EXCEPTIONS->Page.SPLIT;Page.SPLIT,Page.DIAGNOSTICS,Page.HELP,Page.ABOUT,Page.REPORT->Page.SETTINGS;Page.IMPORT->Page.SUBSCRIPTIONS;Page.SUBSCRIPTIONS->Page.ACCOUNT;else->Page.VPN})}
     BackHandler(page !in listOf(Page.VPN)){back()}
     LaunchedEffect(cabinetState.me.optJSONObject("subscription")?.toString()){
-        if(cabinetState.authenticated&&source?.url==app.cabinet.deviceLink){
+        if(cabinetState.authenticated&&SubscriptionLink.sameDevice(source?.url?:"",app.cabinet.deviceLink)){
             if(cabinetState.me.optJSONObject("subscription")?.optString("status") in listOf("paused","expired")){
                 if(model.state.value.activity=="probe")model.cancel()
                 if(serviceRunning)model.disconnect(context)
             }
             model.state.first{!it.running}
-            if(model.activeSource()?.url==app.cabinet.deviceLink)model.refresh()
+            if(SubscriptionLink.sameDevice(model.activeSource()?.url?:"",app.cabinet.deviceLink))model.refresh()
         }
     }
     LaunchedEffect(started,phase){while(online&&started>0){elapsed=(android.os.SystemClock.elapsedRealtime()-started)/1000;delay(1000)};if(!online)elapsed=0}
