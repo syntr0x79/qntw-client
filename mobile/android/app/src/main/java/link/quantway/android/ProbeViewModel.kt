@@ -28,6 +28,7 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
     val state=mutable.asStateFlow()
     private var subscription:SubscriptionLink?=application.subscription
     private var work:Job?=null
+    private val probeGeneration=java.util.concurrent.atomic.AtomicLong()
     @Volatile private var cancelled=false
     init {try{val saved=application.subscriptions.read();val sources=saved.optJSONArray("sources")?:JSONArray();val list=(0 until sources.length()).map{SubscriptionSource.from(sources.getJSONObject(it))};val active=list.firstOrNull{it.id==saved.optString("active")}?:list.firstOrNull();if(active!=null){mutable.value=mutable.value.copy(sources=list);activate(active.id,false);mutable.value=mutable.value.copy(selectedId=saved.optString("selected",mutable.value.selectedId),automatic=saved.optBoolean("automatic",true));QuantwayVpnService.automaticMode=mutable.value.automatic}}catch(_:Exception){mutable.value=mutable.value.copy(message="Добавьте подписку повторно: сохранённые данные недоступны")}}
     fun activeSource()=mutable.value.sources.firstOrNull{it.id==mutable.value.sourceId}
@@ -75,12 +76,13 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
         context.startForegroundService(Intent(context,QuantwayVpnService::class.java))
     }
     fun disconnect(context:Context){context.startService(Intent(context,QuantwayVpnService::class.java).setAction(QuantwayVpnService.STOP))}
-    fun cancel(){cancelled=true;Engine.cancel();work?.cancel();mutable.value=mutable.value.copy(running=false,activity="",message="Проверка остановлена")}
+    fun cancel(){probeGeneration.incrementAndGet();cancelled=true;Engine.cancel();work?.cancel();mutable.value=mutable.value.copy(running=false,activity="",message="Проверка остановлена")}
     fun run(upload:Boolean){
         if(mutable.value.running||mutable.value.profiles.isEmpty())return
         val sourceId=mutable.value.sourceId;val link=subscription;val isExternal=activeSource()?.api==false
+        val generation=probeGeneration.incrementAndGet();val previous=work
         cancelled=false;mutable.value=mutable.value.copy(running=true,activity="probe",rows=emptyList(),recommendedId="",completed=0,total=0,message="Подбираем рабочую маску…")
-        work=viewModelScope.launch(Dispatchers.IO){val api=link?.let{ProbeApi(it.origin,it.token){physical.state.value.network}}
+        work=viewModelScope.launch(Dispatchers.IO){previous?.join();ensureActive();val api=link?.let{ProbeApi(it.origin,it.token){physical.state.value.network}}
             try{while(isActive&&!cancelled){
                 mutable.value=mutable.value.copy(message="Ожидаем устойчивую сеть…")
                 val snapshot=physical.state.first{it.network!=null};delay(750);if(physical.state.value.epoch!=snapshot.epoch)continue
@@ -88,23 +90,44 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
                 require(run.getInt("version")==1&&run.getString("network_epoch")==snapshot.epoch)
                 val jobs=run.getJSONArray("jobs");mutable.value=mutable.value.copy(total=jobs.length(),completed=0)
                 val results=JSONArray();val rows=mutableListOf<String>();var changed=false
-                for(i in 0 until jobs.length()){
-                    ensureActive();val job=jobs.getJSONObject(i)
-                    if(job.optBoolean("provisioning")&&job.optString("engine")=="amneziawg")mutable.value=mutable.value.copy(message="Готовим и проверяем AWG · ${i+1} из ${jobs.length()}")
-                    val result=if(physical.state.value.epoch!=snapshot.epoch)JSONObject().put("job_id",job.getString("job_id")).put("outcome","cancelled").put("reason_code","network_changed").put("elapsed_ms",0)else ProbeExecutor(physical).execute(job,run.getString("control_url"),8_000L,snapshot)
-                    if(physical.state.value.epoch!=snapshot.epoch){changed=true;result.put("outcome","cancelled").put("reason_code","network_changed")}
-                    results.put(result);val outcome=result.getString("outcome");val id=job.getString("job_id")
-                    rows+="${job.probeLabel()} · "+when(outcome){"ok"->"Работает";"fail"->"Не отвечает";"cancelled"->"Повторим в новой сети";else->"Проверка недоступна"}
-                    mutable.value=mutable.value.copy(message="Проверка ${i+1} из ${jobs.length()}",rows=rows.toList(),completed=i+1,observations=mutable.value.observations+(id to ProbeObservation(id,job.probeLabel(),outcome,result.optLong("elapsed_ms"),snapshot.epoch,snapshot.label,System.currentTimeMillis())))
+                // Ten workers pull from the whole catalog, so a slow route does
+                // not stall a batch of fast routes. Only the collector mutates UI
+                // state and JSON arrays; native calls always use one snapshot.
+                coroutineScope {
+                    val next=java.util.concurrent.atomic.AtomicInteger(0)
+                    val completed=kotlinx.coroutines.channels.Channel<Pair<JSONObject,JSONObject>>(ProbeExecutor.PARALLELISM)
+                    val workers=List(minOf(ProbeExecutor.PARALLELISM,jobs.length())) {
+                        launch {
+                            while(isActive){
+                                val index=next.getAndIncrement()
+                                if(index>=jobs.length())break
+                                val job=jobs.getJSONObject(index)
+                                val result=if(physical.state.value.epoch!=snapshot.epoch)JSONObject().put("job_id",job.getString("job_id")).put("outcome","cancelled").put("reason_code","network_changed").put("elapsed_ms",0)else ProbeExecutor(physical).execute(job,run.getString("control_url"),8_000L,snapshot)
+                                ensureActive()
+                                completed.send(job to result)
+                            }
+                        }
+                    }
+                    launch { workers.joinAll();completed.close() }
+                    for((job,result) in completed){
+                        ensureActive()
+                        if(physical.state.value.epoch!=snapshot.epoch){changed=true;result.put("outcome","cancelled").put("reason_code","network_changed")}
+                        results.put(result);val outcome=result.getString("outcome");val id=job.getString("job_id")
+                        rows+="${job.probeLabel()} · "+when(outcome){"ok"->"Работает";"fail"->"Не отвечает";"cancelled"->"Повторим в новой сети";else->"Проверка недоступна"}
+                        mutable.value=mutable.value.copy(message="Проверка ${results.length()} из ${jobs.length()}",rows=rows.toList(),completed=results.length(),observations=mutable.value.observations+(id to ProbeObservation(id,job.probeLabel(),outcome,result.optLong("elapsed_ms"),snapshot.epoch,snapshot.label,System.currentTimeMillis())))
+                    }
                 }
+                if(physical.state.value.epoch!=snapshot.epoch)changed=true
+                ensureActive()
                 if(upload&&!isExternal&&jobs.length()>0&&api!=null&&link!=null){val report=JSONObject().put("report_id",UUID.randomUUID().toString()).put("run_id",run.getString("run_id")).put("network_epoch",snapshot.epoch).put("app_version",BuildConfig.VERSION_NAME).put("engine_version",Engine.version()).put("results",results);val envelope=JSONObject().put("origin",link.origin).put("scope",api.scope).put("expires_at",run.getString("expires_at")).put("report",report);val temp=File(directory,"${report.getString("report_id")}.tmp");temp.writeText(envelope.toString());check(temp.renameTo(File(directory,"${report.getString("report_id")}.json")));try{flush(api,link.origin)}catch(_:Exception){}}
+                ensureActive()
                 if(changed){mutable.value=mutable.value.copy(rows=emptyList(),observations=emptyMap());continue}
                 val successful=(0 until results.length()).map{results.getJSONObject(it)}.filter{it.getString("outcome")=="ok"}.minByOrNull{it.getLong("elapsed_ms")}
                 val best=successful?.getString("job_id")?:""
                 if(best.isNotBlank()&&QuantwayVpnService.current==null&&sourceId==mutable.value.sourceId){mutable.value=mutable.value.copy(selectedId=best);persist()}
                 mutable.value=mutable.value.copy(recommendedId=best,checkedAt=System.currentTimeMillis(),checkedNetwork=snapshot.label,checkedEpoch=snapshot.epoch,message=if(best.isNotBlank())"Рабочее подключение выбрано"else "Не найдено рабочих маршрутов")
                 break
-            }}catch(_:CancellationException){throw CancellationException()}catch(e:Exception){mutable.value=mutable.value.copy(message=message(e))}finally{mutable.value=mutable.value.copy(running=false,activity="",pending=directory.listFiles{f->f.extension=="json"}?.size?:0)}
+            }}catch(_:CancellationException){throw CancellationException()}catch(e:Exception){mutable.value=mutable.value.copy(message=message(e))}finally{if(probeGeneration.get()==generation)mutable.update{it.copy(running=false,activity="",pending=directory.listFiles{f->f.extension=="json"}?.size?:0)}}
         }
     }
     fun retry(){val link=subscription?:return;viewModelScope.launch(Dispatchers.IO){try{flush(ProbeApi(link.origin,link.token){physical.state.value.network},link.origin);mutable.value=mutable.value.copy(message="Очередь отправлена",pending=directory.listFiles{f->f.extension=="json"}?.size?:0)}catch(_:Exception){mutable.value=mutable.value.copy(message="Отправка отложена")}}}

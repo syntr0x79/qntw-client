@@ -248,4 +248,27 @@ class EmulatorIntegrationTest {
         }finally{observer.cancel();model.cancel();shell("svc wifi enable")}
     }
 
+    @Test fun e_parallelCatalog56CompletesWithoutLostResults() {
+        val origin=testbed()
+        val context=InstrumentationRegistry.getInstrumentation().targetContext
+        val app=context.applicationContext as QuantwayApplication
+        awaitCondition("Wi-Fi did not settle before parallel catalog"){app.physical.state.value.label=="Wi-Fi"}
+        val model=ProbeViewModel(app)
+        try {
+            model.importLink("$origin/parallel-subscription")
+            awaitCondition("56-route subscription did not import"){!model.state.value.running&&model.state.value.profiles.size==56}
+            assertEquals(10,JSONObject(Engine.capabilities()).getInt("parallelism"))
+            val started=android.os.SystemClock.elapsedRealtime()
+            model.run(false)
+            awaitCondition("56 parallel probes did not complete: ${model.state.value.message}",90_000){!model.state.value.running}
+            val result=model.state.value
+            assertEquals(56,result.total)
+            assertEquals(56,result.completed)
+            assertEquals(56,result.observations.size)
+            assertEquals("56 real VLESS probes must succeed",56,result.observations.values.count{it.outcome=="ok"})
+            assertTrue("Recommendation missing",result.recommendedId.isNotBlank())
+            android.util.Log.i("QuantwayIntegration","56 routes / 10 workers completed in ${android.os.SystemClock.elapsedRealtime()-started} ms")
+        } finally {model.cancel()}
+    }
+
 }

@@ -1,5 +1,6 @@
 // Package engine exposes the existing Xray and AmneziaWG probers to gomobile.
-// Only one probe runs at once because Xray's socket controllers are process-wide.
+// Concurrent probes share a pinned physical network epoch because Xray socket
+// controllers are process-wide; different epochs must never overlap.
 package engine
 
 import (
@@ -35,8 +36,11 @@ type Network interface {
 
 var state struct {
 	sync.Mutex
-	active        bool
-	cancel        context.CancelFunc
+	probes        map[uint64]context.CancelFunc
+	nextID        uint64
+	epoch         string
+	changed       chan struct{}
+	generation    uint64
 	network       Network
 	tunnelNetwork Network
 }
@@ -67,23 +71,85 @@ func prepare(raw syscall.RawConn, n Network) error {
 }
 
 // Version identifies both the API and the pinned protocol engines.
-func Version() string { return "mobile/2 xray/" + core.Version() + " awg/3.1.20260828" }
+func Version() string { return "mobile/3 xray/" + core.Version() + " awg/3.1.20260828" }
 func Capabilities() string {
-	return `{"version":1,"engines":["xray","amneziawg"],"parallelism":1,"tun":true}`
+	return `{"version":1,"engines":["xray","amneziawg"],"parallelism":10,"tun":true}`
 }
 
-// Cancel interrupts the current probe. A cancellation is never a failed route.
+// Cancel interrupts all probes, including those waiting for an older epoch.
+// The running VPN is independent of this cancellation group.
 func Cancel() {
 	state.Lock()
 	defer state.Unlock()
-	if state.cancel != nil {
-		state.cancel()
+	state.generation++
+	for _, cancel := range state.probes {
+		cancel()
+	}
+	signalProbesLocked()
+}
+
+func signalProbesLocked() {
+	if state.changed != nil {
+		close(state.changed)
+	}
+	state.changed = make(chan struct{})
+}
+
+// reserveProbe keeps the process-wide Xray controller on one physical epoch.
+// Legacy callers (empty epoch) remain exclusive. Capacity/epoch waits do not
+// become failed routes when Cancel interrupts them.
+func reserveProbe(ctx context.Context, cancel context.CancelFunc, network Network, epoch string) (func(), error) {
+	state.Lock()
+	generation := state.generation
+	for {
+		if generation != state.generation || ctx.Err() != nil {
+			state.Unlock()
+			return nil, context.Canceled
+		}
+		if len(state.probes) == 0 || (epoch != "" && state.epoch == epoch && len(state.probes) < 10) {
+			if state.probes == nil {
+				state.probes = make(map[uint64]context.CancelFunc)
+			}
+			state.nextID++
+			id := state.nextID
+			if len(state.probes) == 0 {
+				state.network, state.epoch = network, epoch
+			}
+			state.probes[id] = cancel
+			state.Unlock()
+			return func() {
+				state.Lock()
+				delete(state.probes, id)
+				if len(state.probes) == 0 {
+					state.network, state.epoch = nil, ""
+				}
+				signalProbesLocked()
+				state.Unlock()
+			}, nil
+		}
+		if state.changed == nil {
+			state.changed = make(chan struct{})
+		}
+		changed := state.changed
+		state.Unlock()
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-changed:
+		}
+		state.Lock()
 	}
 }
 
 // Probe executes one job and returns a wire.Result. Configuration errors are
 // returned as Go errors; network outcomes contain only bounded reason codes.
 func Probe(jobJSON string, controlURL string, timeoutMS int, network Network) (string, error) {
+	return ProbeOnNetwork(jobJSON, controlURL, timeoutMS, network, "")
+}
+
+// ProbeOnNetwork admits up to ten concurrent jobs on the same Android epoch.
+// The epoch must identify the immutable physical-network snapshot, not a run.
+func ProbeOnNetwork(jobJSON string, controlURL string, timeoutMS int, network Network, epoch string) (string, error) {
 	if network == nil {
 		return "", errors.New("network required")
 	}
@@ -106,14 +172,13 @@ func Probe(jobJSON string, controlURL string, timeoutMS int, network Network) (s
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutMS)*time.Millisecond)
 	defer cancel()
-	state.Lock()
-	if state.active {
-		state.Unlock()
-		return "", errors.New("probe already running")
+	release, admissionErr := reserveProbe(ctx, cancel, network, epoch)
+	if admissionErr != nil {
+		result := wire.Result{JobID: job.ID, Outcome: "cancelled", Reason: "cancelled"}
+		data, _ := json.Marshal(result)
+		return string(data), nil
 	}
-	state.active, state.network, state.cancel = true, network, cancel
-	state.Unlock()
-	defer func() { state.Lock(); state.active, state.network, state.cancel = false, nil, nil; state.Unlock() }()
+	defer release()
 	started := time.Now()
 	var unprobeable bool
 	switch job.Engine {
