@@ -258,8 +258,21 @@ private fun relativeTime(at:Long):String{val seconds=((System.currentTimeMillis(
 @Composable private fun Section(text:String){Text(text,Modifier.padding(top=10.dp),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant,letterSpacing=1.2.sp)}
 @Composable private fun Empty(title:String,message:String){Panel{Text(title,style=MaterialTheme.typography.titleMedium);Muted(message)}}
 @Composable private fun Step(number:String,title:String){Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){Box(Modifier.size(27.dp).background(MaterialTheme.colorScheme.surfaceVariant,CircleShape),contentAlignment=Alignment.Center){Text(number,fontSize=12.sp)};Text(title,style=MaterialTheme.typography.bodyMedium)}}
-@Composable private fun ObservationLabel(o:ProbeObservation?,epoch:String){Text(when{ o==null->"Не проверен";o.epoch!=epoch->"Другая сеть";o.outcome=="ok"->"${o.elapsedMS} мс";o.outcome=="fail"->"Не отвечает";o.outcome=="cancelled"->"Прервано";else->"Проверка недоступна"},style=MaterialTheme.typography.labelSmall,color=if(o?.outcome=="ok"&&o.epoch==epoch)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)}
-@Composable internal fun RouteCard(p:JSONObject,selected:Boolean,o:ProbeObservation?,epoch:String,onClick:()->Unit){Surface(onClick=onClick,modifier=Modifier.fillMaxWidth().testTag("route-${p.optString("job_id")}"),shape=RoundedCornerShape(17.dp),color=if(selected)MaterialTheme.colorScheme.primary.copy(alpha=.08f)else MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,if(selected)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){Text(p.optString("label"),modifier=Modifier.weight(1f),style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis);if(selected)Icon(Icons.Default.Check,"Выбрано",Modifier.size(17.dp),tint=MaterialTheme.colorScheme.primary)};Text(listOf(p.protocolLabel(),p.optString("entry_label").ifBlank{p.optString("inbound_id").take(8)}).filter{it.isNotBlank()}.joinToString(" · "),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=2,overflow=TextOverflow.Ellipsis);ObservationLabel(o,epoch)}}}
+@Composable private fun ObservationLabel(o:ProbeObservation?,epoch:String,textAlign:TextAlign=TextAlign.Start){Text(when{ o==null->"Не проверен";o.epoch!=epoch->"Другая сеть";o.outcome=="ok"->"${o.elapsedMS} мс";o.outcome=="fail"->"Не отвечает";o.outcome=="cancelled"->"Прервано";else->"Проверка недоступна"},style=MaterialTheme.typography.labelSmall,color=if(o?.outcome=="ok"&&o.epoch==epoch)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,textAlign=textAlign,maxLines=2,overflow=TextOverflow.Ellipsis)}
+@Composable internal fun RouteCard(p:JSONObject,selected:Boolean,o:ProbeObservation?,epoch:String,onClick:()->Unit){
+    Surface(onClick=onClick,modifier=Modifier.fillMaxWidth().testTag("route-${p.optString("job_id")}"),shape=RoundedCornerShape(14.dp),color=if(selected)MaterialTheme.colorScheme.primary.copy(alpha=.08f)else MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,if(selected)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)){
+        Row(Modifier.heightIn(min=64.dp).padding(horizontal=14.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
+            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)){
+                Text(p.optString("label"),style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis)
+                Text(p.protocolLabel(),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=2,overflow=TextOverflow.Ellipsis)
+            }
+            Column(Modifier.widthIn(max=104.dp),horizontalAlignment=Alignment.End,verticalArrangement=Arrangement.spacedBy(4.dp)){
+                ObservationLabel(o,epoch,TextAlign.End)
+                if(selected)Icon(Icons.Default.Check,"Выбрано",Modifier.size(16.dp),tint=MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
 @Composable internal fun HelpItem(title:String,text:String){
     var expanded by rememberSaveable{mutableStateOf(false)}
     Surface(onClick={expanded=!expanded},modifier=Modifier.fillMaxWidth().semantics{stateDescription=if(expanded)"Развёрнуто"else "Свёрнуто"},shape=RoundedCornerShape(14.dp),color=MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,MaterialTheme.colorScheme.outline)){

@@ -61,4 +61,17 @@ class ResponsiveLayoutTest {
         ui.onNodeWithText("Как работает подключение?").performScrollTo().performClick()
         ui.onNodeWithText("Развёрнутый ответ справки").performScrollTo().assertIsDisplayed()
     }
+    @Test fun compactRouteHidesTechnicalAddressAndPlacesLatencyOnRight(){
+        val technical="awg-in · 192.0.2.1:51821"
+        ui.setContent{MaterialTheme{Surface{Column(Modifier.width(360.dp)){
+            RouteCard(JSONObject().put("job_id","compact").put("label","AWG — Польша").put("engine","amneziawg").put("entry_label",technical),false,ProbeObservation("compact","", "ok",123,"wifi","Wi-Fi",0),"wifi"){}
+        }}}}
+        ui.onNodeWithText(technical).assertDoesNotExist()
+        val card=ui.onNodeWithTag("route-compact").getUnclippedBoundsInRoot()
+        assertTrue("ordinary route card should be compact",card.bottom-card.top<=72.dp)
+        val name=ui.onNodeWithText("AWG — Польша",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
+        val latency=ui.onNodeWithText("123 мс",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
+        assertTrue("latency must sit to the right of the route name",latency.left>=name.right)
+    }
+
 }
