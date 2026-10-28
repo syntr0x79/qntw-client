@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,8 +26,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()else(0 until length()).map{getJSONObject(it)}
-@Composable private fun CButton(text:String,enabled:Boolean=true,tag:String="",onClick:()->Unit){Button(onClick,enabled=enabled,modifier=Modifier.fillMaxWidth().testTag(tag)){Text(text)}}
-@Composable private fun CPanel(content:@Composable ColumnScope.()->Unit){Card(Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp),content=content)}}
+@Composable private fun CButton(text:String,enabled:Boolean=true,tag:String="",onClick:()->Unit){Button(onClick,enabled=enabled,modifier=Modifier.fillMaxWidth().testTag(tag)){Text(text,textAlign=TextAlign.Center)}}
+@Composable private fun CPanel(content:@Composable ColumnScope.()->Unit){Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)}}
 @Composable private fun CMuted(text:String){Text(text,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -41,9 +42,9 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
     LaunchedEffect(state.authenticated){if(state.authenticated)code=""}
     fun external(url:String){val uri=runCatching{Uri.parse(url)}.getOrNull()?:return;if(uri.scheme=="https")context.startActivity(Intent(Intent.ACTION_VIEW,uri))}
     if(!home)TextButton(onClick={model.open("home")}){Text("← Кабинет")}
-    Text(if(!state.authenticated)"Вход в Quantway"else when(state.page){"devices"->"Мои устройства";"plans"->"Продление подписки";"invoices"->"Мои счета";"invoice"->"Оплата";"support","ticket"->"Поддержка";"history"->"История подписки";"referral"->"Пригласить друга";else->"Мой кабинет"},style=MaterialTheme.typography.headlineLarge)
+    Text(if(!state.authenticated)"Вход в Quantway"else when(state.page){"devices"->"Мои устройства";"plans"->"Продление подписки";"invoices"->"Мои счета";"invoice"->"Оплата";"support","ticket"->"Поддержка";"history"->"История подписки";"referral"->"Пригласить друга";else->"Мой кабинет"},style=MaterialTheme.typography.headlineMedium)
     if(state.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
-    if(state.message.isNotBlank())Text(state.message,modifier=Modifier.testTag("account-message"),style=MaterialTheme.typography.bodyMedium)
+    if(state.message.isNotBlank())AccountNotice(state.message)
     if(!state.authenticated){
         CMuted("Введите тот же код, которым входите в кабинет Quantway. Он есть в сообщении бота или был выдан при регистрации.")
         OutlinedTextField(code,{code=it},label={Text("Код для входа")},singleLine=true,enabled=!state.busy,visualTransformation=PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Password),modifier=Modifier.fillMaxWidth().testTag("account-code"))
@@ -54,11 +55,11 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
         "home"->{
             val sub=state.me.optJSONObject("subscription")?:JSONObject();val features=state.me.optJSONObject("features")?:JSONObject();val retail=state.identity.optString("kind")=="retail";val owner=state.identity.optString("kind")=="owner"
             CPanel{if(state.identity.optString("orgName")!="null"&&state.identity.optString("orgName").isNotBlank())Text(state.identity.optString("orgName"));Text(sub.optString("headline","Подписка Quantway"),style=MaterialTheme.typography.titleMedium);if(!sub.isNull("days_left"))Text("${sub.optInt("days_left")} дней",fontSize=34.sp);CMuted(sub.optString("until_text"));if(sub.has("devices"))CMuted("Устройств по подписке: ${sub.optInt("devices")}")}
-            if(!owner){CButton("Подключить этот телефон",!state.busy&&sub.optBoolean("link_works"),"connect-account-phone"){model.addPhone(onLink)};CMuted("Используем привязанное к приложению устройство или создадим новое в пределах оплаченного лимита.");CButton("Мои устройства",!state.busy,"account-devices"){model.open("devices","devices")}}
-            if(retail){CButton("Продлить подписку",!state.busy,"account-plans"){model.open("plans","plans")};OutlinedButton(onClick={confirm=(if(sub.optString("status")=="paused")"Возобновить подписку?"else "Поставить подписку на паузу?") to {model.action("subscription/"+if(sub.optString("status")=="paused")"resume"else "pause")}},enabled=!state.busy,modifier=Modifier.fillMaxWidth().testTag("account-pause")){Text(if(sub.optString("status")=="paused")"Возобновить"else "Приостановить")};TextButton(onClick={model.open("history","history")}){Text("История дней")}}
-            TextButton(onClick={model.open("invoices","invoices")}){Text("Счета и оплаты")}
-            if(features.optBoolean("support"))TextButton(onClick={model.open("support","support")},modifier=Modifier.testTag("account-support")){Text("Поддержка")}
-            if(features.optBoolean("referral"))TextButton(onClick={model.open("referral","referral")}){Text("Пригласить друга")}
+            if(!owner){CButton("Подключить этот телефон",!state.busy&&sub.optBoolean("link_works"),"connect-account-phone"){model.addPhone(onLink)};AccountLink("Мои устройства",!state.busy,"account-devices"){model.open("devices","devices")}}
+            if(retail){CButton("Продлить подписку",!state.busy,"account-plans"){model.open("plans","plans")};OutlinedButton(onClick={confirm=(if(sub.optString("status")=="paused")"Возобновить подписку?"else "Поставить подписку на паузу?") to {model.action("subscription/"+if(sub.optString("status")=="paused")"resume"else "pause")}},enabled=!state.busy,modifier=Modifier.fillMaxWidth().testTag("account-pause")){Text(if(sub.optString("status")=="paused")"Возобновить"else "Приостановить")};AccountLink("История дней"){model.open("history","history")}}
+            AccountLink("Счета и оплаты"){model.open("invoices","invoices")}
+            if(features.optBoolean("support"))AccountLink("Поддержка",tag="account-support"){model.open("support","support")}
+            if(features.optBoolean("referral"))AccountLink("Пригласить друга"){model.open("referral","referral")}
             TextButton(onClick={model.refresh()},enabled=!state.busy){Text("Обновить кабинет")}
             TextButton(onClick={confirm="Выйти из аккаунта? VPN-подписки останутся на этом телефоне." to {model.logout()}},enabled=!state.busy,modifier=Modifier.testTag("account-logout")){Text("Выйти")}
         }
@@ -87,7 +88,7 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
             val selected=plans.firstOrNull{it.optString("id")==selectedPlan};val total=selected?.optJSONArray("totals").objects().firstOrNull{it.optInt("devices")==extras};val price=total?.optString("promo_price")?.ifBlank{total.optString("price")}?:selected?.optString("promo_price")?.ifBlank{selected.optString("price")}
             if(!price.isNullOrBlank())Text("К оплате: $price",style=MaterialTheme.typography.titleLarge)
             FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)){methods.forEach{m->FilterChip(method==m.optString("id"),{method=m.optString("id")},label={Text(m.optString("label"))})}}
-            if(state.me.optJSONObject("features")?.optBoolean("promo")==true){state.data.optJSONObject("promo")?.let{held->CMuted("Промокод: ${held.optString("code")}");TextButton(onClick={model.action("promo","DELETE",reload="plans")},enabled=!state.busy){Text("Убрать промокод")}};OutlinedTextField(promo,{promo=it},label={Text("Промокод")},modifier=Modifier.fillMaxWidth());CButton("Применить промокод",!state.busy&&promo.isNotBlank()){model.action("promo",body=JSONObject().put("code",promo.trim()),reload="plans")}}
+            if(state.me.optJSONObject("features")?.optBoolean("promo")==true){state.data.optJSONObject("promo")?.let{held->CMuted("Промокод: ${held.optString("code")}");TextButton(onClick={model.action("promo","DELETE",reload="plans")},enabled=!state.busy){Text("Убрать промокод")}};OutlinedTextField(promo,{promo=it},label={Text("Промокод")},singleLine=true,modifier=Modifier.fillMaxWidth());CButton("Применить промокод",!state.busy&&promo.isNotBlank()){model.action("promo",body=JSONObject().put("code",promo.trim()),reload="plans")}}
             CButton("Создать счёт",!state.busy&&selectedPlan.isNotBlank()&&method.isNotBlank(),"account-create-invoice"){model.invoice(selectedPlan,method,if(choice!=null)extras else null)}
         }
         "invoices"->{state.data.optJSONArray("invoices").objects().forEach{i->CPanel{Text(i.optString("title"));Text("${i.optString("amount_rub")} · ${i.optString("status")}");CMuted(i.optString("date"));CButton("Открыть счёт",!state.busy){model.open("invoice","invoices/${i.getString("id")}")}}};if(state.data.optBoolean("more"))CButton("Следующие счета",!state.busy){model.open("invoices","invoices?before=${Uri.encode(state.data.optString("next_before"))}")}}
@@ -98,25 +99,25 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
             val conversation=if(state.page=="support")state.data.optJSONObject("current")else state.data
             val messages=conversation?.optJSONArray("messages").objects()
             messages.forEach{m->CPanel{CMuted(m.optString("author")+" · "+m.optString("at"));Text(m.optString("body"));if(m.optString("note").isNotBlank())CMuted(m.optString("note"))}}
-            if(state.page=="support"){OutlinedTextField(message,{message=it},label={Text("Сообщение поддержке")},minLines=3,enabled=!state.busy,modifier=Modifier.fillMaxWidth().testTag("account-support-message"));CButton("Отправить",!state.busy&&message.isNotBlank()&&message.length<=state.data.optInt("max_runes",4000),"account-support-send"){model.action("support/messages",body=JSONObject().put("body",message),reload="support",done={message=""})};state.data.optJSONArray("history").objects().forEach{t->TextButton(onClick={model.open("ticket","support/tickets/${t.getLong("id")}")}){Text(t.optString("subject")+" · "+t.optString("closed"))}}}
+            if(state.page=="support"){OutlinedTextField(message,{message=it},label={Text("Сообщение поддержке")},minLines=3,maxLines=6,enabled=!state.busy,modifier=Modifier.fillMaxWidth().testTag("account-support-message"));CButton("Отправить",!state.busy&&message.isNotBlank()&&message.length<=state.data.optInt("max_runes",4000),"account-support-send"){model.action("support/messages",body=JSONObject().put("body",message),reload="support",done={message=""})};state.data.optJSONArray("history").objects().forEach{t->TextButton(onClick={model.open("ticket","support/tickets/${t.getLong("id")}")}){Text(t.optString("subject")+" · "+t.optString("closed"))}}}
             TextButton(onClick={model.open(state.page,if(state.page=="support")"support"else "support/tickets/${state.data.optJSONObject("ticket")?.optLong("id")}")},enabled=!state.busy){Text("Обновить переписку")}
         }
     }
     HorizontalDivider()
     OutlinedButton(onClick=onSubscriptions,modifier=Modifier.fillMaxWidth().testTag("manage-subscriptions")){Text("Мои VPN-подписки")}
-    if(renameId.isNotBlank())AlertDialog(onDismissRequest={renameId=""},title={Text("Название устройства")},text={OutlinedTextField(renameText,{renameText=it},singleLine=true)},confirmButton={TextButton(onClick={model.action("devices/$renameId","PATCH",JSONObject().put("name",renameText.trim()),reload="devices");renameId=""},enabled=renameText.isNotBlank()&&!state.busy){Text("Сохранить")}},dismissButton={TextButton(onClick={renameId=""}){Text("Отмена")}})
+    if(renameId.isNotBlank())AlertDialog(onDismissRequest={renameId=""},title={Text("Название устройства")},text={OutlinedTextField(renameText,{renameText=it},singleLine=true,modifier=Modifier.fillMaxWidth())},confirmButton={TextButton(onClick={model.action("devices/$renameId","PATCH",JSONObject().put("name",renameText.trim()),reload="devices");renameId=""},enabled=renameText.isNotBlank()&&!state.busy){Text("Сохранить")}},dismissButton={TextButton(onClick={renameId=""}){Text("Отмена")}})
     confirm?.let{(text,action)->AlertDialog(onDismissRequest={confirm=null},title={Text("Подтвердите действие")},text={Text(text)},confirmButton={TextButton(onClick={confirm=null;action()}){Text("Подтвердить")}},dismissButton={TextButton(onClick={confirm=null}){Text("Отмена")}})}
 }
 
 
-@Composable private fun CompactDeviceRow(device:JSONObject,self:Boolean,busy:Boolean,onUse:()->Unit,onRename:()->Unit,onBlock:()->Unit,onDelete:()->Unit){
+@Composable internal fun CompactDeviceRow(device:JSONObject,self:Boolean,busy:Boolean,onUse:()->Unit,onRename:()->Unit,onBlock:()->Unit,onDelete:()->Unit){
     val id=device.getString("id");val name=device.optString("name").ifBlank{"Устройство"}
     var menu by remember{mutableStateOf(false)}
     Surface(modifier=Modifier.fillMaxWidth().testTag("device-card-$id"),shape=RoundedCornerShape(16.dp),color=MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,if(self)MaterialTheme.colorScheme.primary.copy(alpha=.55f)else MaterialTheme.colorScheme.outline)){
         Row(Modifier.padding(horizontal=14.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
-                Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
-                    Text(name,modifier=Modifier.weight(1f,fill=false),style=MaterialTheme.typography.titleSmall,maxLines=1,overflow=TextOverflow.Ellipsis)
+                Column(verticalArrangement=Arrangement.spacedBy(2.dp)){
+                    Text(name,modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.titleSmall,maxLines=1,overflow=TextOverflow.Ellipsis)
                     if(self)Text("Этот телефон",modifier=Modifier.testTag("current-account-device"),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary,maxLines=1)
                 }
                 Text(if(device.optBoolean("blocked"))"Заблокировано"else if(device.optBoolean("online"))"В сети"else device.optString("last_seen").takeIf{it.isNotBlank()}?.let{"Был: $it"}?:"Ещё не подключалось",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1,overflow=TextOverflow.Ellipsis)
@@ -133,3 +134,7 @@ private fun JSONArray?.objects():List<JSONObject> = if(this==null)emptyList()els
         }
     }
 }
+
+@Composable private fun AccountLink(text:String,enabled:Boolean=true,tag:String="",onClick:()->Unit){Surface(onClick=onClick,enabled=enabled,modifier=Modifier.fillMaxWidth().testTag(tag),shape=RoundedCornerShape(12.dp),color=MaterialTheme.colorScheme.surface){Row(Modifier.heightIn(min=48.dp).padding(horizontal=14.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){Text(text,Modifier.weight(1f),style=MaterialTheme.typography.titleSmall);Text("›",color=MaterialTheme.colorScheme.onSurfaceVariant)}}}
+
+@Composable internal fun AccountNotice(message:String){Surface(Modifier.fillMaxWidth().testTag("account-message"),shape=RoundedCornerShape(12.dp),color=MaterialTheme.colorScheme.surfaceVariant){Text(message.trim().replace(Regex("\\n[ \\t\\r]*\\n+"),"\n"),modifier=Modifier.padding(12.dp),style=MaterialTheme.typography.bodySmall)}}
