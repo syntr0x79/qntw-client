@@ -18,7 +18,7 @@ class CabinetApi(private val app:Application) {
         get()=saved.optString("device_id")
         set(value){synchronized(this){saved.put("device_id",value);store.write(saved)}}
     val phoneName:String
-        get()=synchronized(this){saved.optString("phone_name").ifBlank{val name="Quantway · Android "+java.util.UUID.randomUUID().toString().take(8);saved.put("phone_name",name);store.write(saved);name}}
+        get()=synchronized(this){saved.optString("phone_name").ifBlank{val name=(if(isTelevision(app))"Quantway · Android TV " else "Quantway · Android ")+java.util.UUID.randomUUID().toString().take(8);saved.put("phone_name",name);store.write(saved);name}}
     var deviceLink:String
         get()=saved.optString("device_link")
         set(value){synchronized(this){saved.put("device_link",value);store.write(saved)}}
@@ -30,8 +30,7 @@ class CabinetApi(private val app:Application) {
     @Synchronized fun request(path:String,method:String="GET",body:JSONObject?=null):JSONObject {
         require(path.matches(Regex("[a-zA-Z0-9_/?=&.%-]+"))&&!path.contains(".."))
         val url=URI("$origin/api/web/v1/$path").toURL()
-        val network=(app as QuantwayApplication).physical.state.value.network
-        val c=(network?.openConnection(url)?:url.openConnection()) as HttpURLConnection
+        val c=(app as QuantwayApplication).openControlConnection(url)
         try {
             c.instanceFollowRedirects=false;c.connectTimeout=10_000;c.readTimeout=20_000;c.requestMethod=method
             c.setRequestProperty("Origin",origin);c.setRequestProperty("X-Quantway","1")

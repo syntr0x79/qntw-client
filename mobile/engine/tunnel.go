@@ -159,6 +159,7 @@ func StartVPN(fd int, jobJSON string, network Network) error {
 			}
 		}
 		state.Lock()
+		rememberCore(instance)
 		state.tunnelCore, state.tunnelOwner = instance, owner
 		state.Unlock()
 		defer func() {

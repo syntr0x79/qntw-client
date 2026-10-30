@@ -172,6 +172,13 @@ func ProbeOnNetwork(jobJSON string, controlURL string, timeoutMS int, network Ne
 	defer release()
 	owner := newSocketOwner(ctx, network)
 	ctx = context.WithValue(ctx, socketOwnerKey{}, owner)
+	ctx = xrayfetch.WithInstanceObserver(ctx, func(instance *core.Instance) func() {
+		rememberCore(instance)
+		probeOwners.Lock()
+		probeOwners.instances[instance] = owner
+		probeOwners.Unlock()
+		return func() { probeOwners.Lock(); delete(probeOwners.instances, instance); probeOwners.Unlock() }
+	})
 	stopSockets := context.AfterFunc(ctx, owner.close)
 	defer stopSockets()
 	defer owner.close()

@@ -12,12 +12,14 @@ import org.junit.FixMethodOrder
 import org.junit.runners.MethodSorters
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Before
 import java.net.HttpURLConnection
 import java.net.URL
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class NativeCabinetTest {
     @get:Rule val ui=createAndroidComposeRule<MainActivity>()
+    @Before fun waitForStartup(){ui.waitUntil(15_000){ui.onAllNodesWithTag("nav-account").fetchSemanticsNodes().isNotEmpty()}}
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val app get()=instrumentation.targetContext.applicationContext as QuantwayApplication
     private val origin get()=InstrumentationRegistry.getArguments().getString("testbed")!!
@@ -27,6 +29,7 @@ class NativeCabinetTest {
     private fun ready(){waitFor("cabinet request did not finish"){!account().state.value.busy}}
     private fun nav(){ui.onNodeWithTag("nav-account").performClick();ready()}
     private fun confirm(){ui.onNodeWithText("Подтвердить",substring=false).performClick();ready()}
+    private fun more(){if(ui.onAllNodesWithTag("account-logout").fetchSemanticsNodes().isEmpty())ui.onNodeWithTag("account-more").performScrollTo().performClick()}
     private fun screenshot(name:String){
         ui.waitForIdle();Thread.sleep(350)
         val bitmap=instrumentation.uiAutomation.takeScreenshot()!!;val bytes=java.io.ByteArrayOutputStream();bitmap.compress(Bitmap.CompressFormat.PNG,100,bytes);bitmap.recycle()
@@ -47,11 +50,14 @@ class NativeCabinetTest {
         val createdId=account().state.value.phoneId
         assertTrue("new app device was not bound",createdId.isNotBlank()&&createdId!=f.getString("device_id"))
         ui.onNodeWithTag("account-devices").performScrollTo().performClick();ready()
+        ui.onNodeWithTag("refresh-account-devices").assertIsDisplayed()
         ui.onNodeWithTag("back-account").performScrollTo().performClick();ready()
         ui.onNodeWithTag("account-devices").performScrollTo().performClick();ready()
         ui.onNodeWithTag("device-card-$createdId").assertExists();ui.onNodeWithTag("current-account-device").assertExists()
         screenshot("devices-new")
         ui.onNodeWithTag("back-account").performScrollTo().performClick()
+        ui.onNodeWithTag("connect-account-phone").assertDoesNotExist()
+        more()
         ui.onNodeWithTag("account-logout").performScrollTo().performClick();confirm()
         app.cabinetTestOrigin=null
     }
@@ -79,9 +85,12 @@ class NativeCabinetTest {
         assertFalse("login code saved in plaintext",encrypted.contains(code));assertFalse(encrypted.contains("qw_session="))
         assertEquals("imported phone was not recognized on login",f.getString("device_id"),account().state.value.phoneId)
         val before=account().state.value.devices.getJSONArray("devices").length()
-        ui.onNodeWithTag("connect-account-phone").performScrollTo().performClick()
-        waitFor("account did not import its VPN subscription"){!probe.state.value.running&&probe.state.value.profiles.size==10&&ui.onAllNodesWithTag("vpn-power").fetchSemanticsNodes().isNotEmpty()}
-        nav();assertEquals("existing phone consumed another paid slot",before,account().state.value.devices.getJSONArray("devices").length())
+        ui.onNodeWithTag("connect-account-phone").assertDoesNotExist()
+        ui.onNodeWithText("Этот телефон добавлен").assertExists()
+        ui.onNodeWithText("История дней").assertDoesNotExist()
+        ui.onNodeWithTag("account-pause").assertDoesNotExist()
+        ui.onNodeWithTag("account-invoices").assertDoesNotExist()
+        assertEquals("existing phone consumed another paid slot",before,account().state.value.devices.getJSONArray("devices").length())
         ui.onNodeWithTag("account-devices").performScrollTo().performClick();ready()
         ui.onNodeWithTag("back-account").performScrollTo().performClick();ready()
         ui.onNodeWithTag("account-devices").performScrollTo().performClick();ready()
@@ -97,6 +106,8 @@ class NativeCabinetTest {
         ui.onNodeWithTag("device-menu-${f.getString("device_id")}").performScrollTo().performClick();ui.onNodeWithTag("block-device-${f.getString("device_id")}").performClick();confirm()
         screenshot("devices")
         ui.onNodeWithTag("back-account").performScrollTo().performClick()
+        more()
+        ui.onNodeWithTag("account-invoices").assertExists()
         ui.onNodeWithTag("account-pause").performScrollTo().performClick();confirm()
         assertEquals("paused",account().state.value.me.getJSONObject("subscription").getString("status"))
         ui.onNodeWithTag("account-pause").performScrollTo().performClick();confirm()
@@ -106,14 +117,15 @@ class NativeCabinetTest {
         val shot=URL("$origin/screenshots/account").openConnection() as HttpURLConnection
         try{shot.requestMethod="POST";shot.doOutput=true;shot.outputStream.use{it.write(bytes.toByteArray())};assertEquals(204,shot.responseCode)}finally{shot.disconnect()}
         ui.onNodeWithTag("account-plans").performScrollTo().performClick();ready()
-        ui.onNodeWithTag("account-create-invoice").performScrollTo().performClick();ready()
+        ui.onNodeWithTag("account-create-invoice").assertIsDisplayed().performClick();ready()
         assertEquals("invoice",account().state.value.page);assertTrue(account().state.value.data.getJSONObject("invoice").optString("address").isNotBlank())
         ui.onNodeWithTag("back-account").performScrollTo().performClick()
         ui.onNodeWithTag("account-support").performScrollTo().performClick();ready()
-        ui.onNodeWithTag("account-support-message").performScrollTo().performTextInput("Тест нативного кабинета")
+        ui.onNodeWithTag("account-support-message").assertIsDisplayed().performTextInput("Тест нативного кабинета")
         ui.onNodeWithTag("account-support-send").performScrollTo().performClick();ready()
         assertTrue(account().state.value.data.getJSONObject("current").getJSONArray("messages").length()>0)
         ui.onNodeWithTag("back-account").performScrollTo().performClick()
+        more()
         ui.onNodeWithTag("account-logout").performScrollTo().performClick();confirm()
         assertFalse(account().state.value.authenticated);assertFalse(app.cabinet.signedIn)
         assertTrue("logout removed VPN subscriptions",probe.state.value.sources.isNotEmpty())

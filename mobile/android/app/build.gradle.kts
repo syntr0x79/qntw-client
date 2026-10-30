@@ -10,10 +10,10 @@ android {
         applicationId = "link.quantway.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
-        versionName = "0.4.6"
+        versionCode = 26
+        versionName = "0.7.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        ndk { abiFilters += if (project.hasProperty("quantwayPhoneBuild")) listOf("armeabi-v7a", "arm64-v8a") else listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64") }
     }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }

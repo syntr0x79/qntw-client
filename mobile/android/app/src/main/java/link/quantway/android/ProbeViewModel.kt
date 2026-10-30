@@ -15,8 +15,12 @@ import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import org.json.JSONObject
+
+internal fun isProbeFresh(checkedAt:Long,checkedEpoch:String,currentEpoch:String,now:Long):Boolean =
+    checkedAt>0 && now-checkedAt in 0..300_000 && checkedEpoch==currentEpoch
 
 class ProbeViewModel(app:Application):AndroidViewModel(app) {
     private val application=app as QuantwayApplication
@@ -32,6 +36,14 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
     private var reportWork:Job?=null
     @Volatile private var cancelled=false
     init {try{val saved=application.subscriptions.read();val sources=saved.optJSONArray("sources")?:JSONArray();val list=(0 until sources.length()).map{SubscriptionSource.from(sources.getJSONObject(it))};val active=list.firstOrNull{it.id==saved.optString("active")}?:list.firstOrNull();if(active!=null){mutable.value=mutable.value.copy(sources=list);activate(active.id,false);mutable.value=mutable.value.copy(selectedId=saved.optString("selected",mutable.value.selectedId),automatic=saved.optBoolean("automatic",true));QuantwayVpnService.automaticMode=mutable.value.automatic}}catch(_:Exception){mutable.value=mutable.value.copy(message="Добавьте подписку повторно: сохранённые данные недоступны")}}
+    init { viewModelScope.launch { physical.state.collect { network ->
+        mutable.update { s -> if(s.checkedEpoch.isNotEmpty() && s.checkedEpoch!=network.epoch) s.copy(recommendedId="",checkedAt=0,checkedEpoch="",observations=emptyMap(),rows=emptyList()) else s }
+    } } }
+    fun hasFreshCheck():Boolean {
+        val s=mutable.value
+        return isProbeFresh(s.checkedAt,s.checkedEpoch,physical.state.value.epoch,System.currentTimeMillis())
+    }
+    fun hasFreshRecommendation():Boolean = hasFreshCheck() && mutable.value.recommendedId.isNotBlank()
     fun activeSource()=mutable.value.sources.firstOrNull{it.id==mutable.value.sourceId}
     fun accountURL():String?=activeSource()?.takeIf{it.api}?.let{SubscriptionLink.parse(it.url).origin+"/account"}?:subscription?.origin?.plus("/account")
     fun days():Int?=activeSource()?.cache?.optJSONObject("subscription")?.takeIf{it.has("days_available")}?.getInt("days_available")
@@ -40,7 +52,30 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
     private fun persist(){val s=mutable.value;application.subscriptions.write(JSONObject().put("sources",JSONArray(s.sources.map{it.json()})).put("active",s.sourceId).put("selected",s.selectedId).put("automatic",s.automatic))}
     fun select(id:String){if(mutable.value.profiles.none{it.optString("job_id")==id})return;mutable.value=mutable.value.copy(selectedId=id,automatic=false);QuantwayVpnService.automaticMode=false;persist()}
     fun selectAutomatic(){val s=mutable.value;val best=s.profiles.filter{s.observations[it.optString("job_id")]?.let{v->v.epoch==physical.state.value.epoch&&v.outcome=="ok"}==true}.minByOrNull{s.observations[it.optString("job_id")]!!.elapsedMS};mutable.value=s.copy(automatic=true,selectedId=best?.getString("job_id")?:s.selectedId);QuantwayVpnService.automaticMode=true;persist()}
-    fun activate(id:String,save:Boolean=true){val source=mutable.value.sources.firstOrNull{it.id==id}?:return;val a=source.cache.optJSONArray("profiles")?:JSONArray();val profiles=(0 until a.length()).map{a.getJSONObject(it)};subscription=if(source.api)SubscriptionLink.parse(source.url)else null;application.subscription=subscription;application.routingPolicy=source.cache.optJSONObject("routing")?:mutable.value.sources.firstNotNullOfOrNull{it.cache.optJSONObject("routing")};QuantwayVpnService.profiles=profiles;source.cache.optString("control_url").takeIf{it.startsWith("https://")}?.let{QuantwayVpnService.controlURL=it};mutable.value=mutable.value.copy(sourceId=id,profiles=profiles,selectedId=profiles.firstOrNull()?.optString("job_id")?:"",observations=emptyMap(),rows=emptyList(),recommendedId="",checkedAt=0,message="Подписка выбрана");if(save)persist()}
+    fun activate(id:String,save:Boolean=true){
+        val old=mutable.value
+        val source=old.sources.firstOrNull{it.id==id}?:return
+        val a=source.cache.optJSONArray("profiles")?:JSONArray()
+        val profiles=(0 until a.length()).map{a.getJSONObject(it)}
+        val previous=old.profiles.associateBy{it.optString("job_id")}
+        val unchanged=if(old.sourceId==id) profiles.filter { p ->
+            val before=previous[p.optString("job_id")]
+            before!=null && before.toString()==p.toString()
+        }.map{it.optString("job_id")}.toSet() else emptySet()
+        val observations=old.observations.filterKeys{it in unchanged}
+        val recommended=old.recommendedId.takeIf{it in unchanged && old.checkedEpoch==physical.state.value.epoch}?:""
+        subscription=if(source.api)SubscriptionLink.parse(source.url)else null
+        application.subscription=subscription
+        application.routingPolicy=source.cache.optJSONObject("routing")?:old.sources.firstNotNullOfOrNull{it.cache.optJSONObject("routing")}
+        QuantwayVpnService.profiles=profiles
+        if(old.sourceId==id){
+            val selected=QuantwayVpnService.selected
+            if(selected!=null) QuantwayVpnService.selected=profiles.firstOrNull{it.optString("job_id")==selected.optString("job_id")}
+        }
+        source.cache.optString("control_url").takeIf{it.startsWith("https://")}?.let{QuantwayVpnService.controlURL=it}
+        mutable.value=mutable.value.copy(sourceId=id,profiles=profiles,selectedId=profiles.firstOrNull()?.optString("job_id")?:"",observations=observations,rows=emptyList(),recommendedId=recommended,checkedAt=if(recommended.isNotEmpty())old.checkedAt else 0,message="Подписка выбрана")
+        if(save)persist()
+    }
     fun removeSource(id:String){if(mutable.value.running)return;val next=mutable.value.sources.filterNot{it.id==id};mutable.value=mutable.value.copy(sources=next);if(id==mutable.value.sourceId){if(next.isNotEmpty())activate(next.first().id,false)else{subscription=null;application.subscription=null;QuantwayVpnService.profiles=emptyList();mutable.value=mutable.value.copy(sourceId="",profiles=emptyList(),selectedId="",observations=emptyMap(),rows=emptyList())}};persist()}
     fun importLink(text:String){if(mutable.value.running)return;load(text,true)}
     fun refresh(){val source=activeSource()?:return;if(mutable.value.running)return;load(source.url,false)}
@@ -50,7 +85,7 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
             val uri=URI(text.trim());require(uri.host!=null&&uri.userInfo==null&&uri.fragment==null&&(uri.scheme=="https"||(BuildConfig.DEBUG&&uri.scheme=="http"&&uri.host=="10.0.2.2")))
             val link=runCatching{SubscriptionLink.parse(text)}.getOrNull()
             var api=link!=null
-            val response=if(link!=null){try{ProbeApi(link.origin,link.token){physical.state.value.network}.profiles()}catch(e:ApiFailure){if(e.status!=404)throw e;api=false;JSONObject(Engine.importSubscription(fetch(text.trim())))}}else{api=false;JSONObject(Engine.importSubscription(fetch(text.trim())))}
+            val response=if(link!=null){try{ProbeApi(link.origin,link.token,application::openControlConnection).profiles()}catch(e:ApiFailure){if(e.status!=404)throw e;api=false;JSONObject(Engine.importSubscription(fetch(text.trim())))}}else{api=false;JSONObject(Engine.importSubscription(fetch(text.trim())))}
             require(response.getInt("version")==1)
             val a=response.getJSONArray("profiles");require(a.length()>0||response.optJSONObject("subscription")!=null)
             val id=MessageDigest.getInstance("SHA-256").digest(text.trim().toByteArray()).take(16).joinToString(""){"%02x".format(it)}
@@ -65,8 +100,8 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
         }catch(_:CancellationException){throw CancellationException()}catch(e:Exception){mutable.value=mutable.value.copy(message=message(e))}finally{mutable.value=mutable.value.copy(running=false,activity="")}}
     }
     private fun fetch(link:String):String{
-        val url=URI(link).toURL();val network=physical.state.value.network?:throw IOException()
-        val c=network.openConnection(url) as HttpURLConnection
+        val url=URI(link).toURL()
+        val c=application.openControlConnection(url)
         try{c.instanceFollowRedirects=false;c.connectTimeout=10_000;c.readTimeout=20_000;c.setRequestProperty("User-Agent","QuantwayAndroid/${BuildConfig.VERSION_NAME}");require(c.responseCode in 200..299);val b=c.inputStream.use{it.readBytesLimited(1 shl 20)};return String(b,Charsets.UTF_8)}finally{c.disconnect()}
     }
     private fun java.io.InputStream.readBytesLimited(max:Int):ByteArray{val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(8192);while(out.size()<=max){val n=read(buffer,0,minOf(buffer.size,max+1-out.size()));if(n<0)break;out.write(buffer,0,n)};require(out.size()<=max);return out.toByteArray()}
@@ -78,19 +113,25 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
     }
     fun disconnect(context:Context){context.startService(Intent(context,QuantwayVpnService::class.java).setAction(QuantwayVpnService.STOP))}
     fun cancel(){probeGeneration.incrementAndGet();cancelled=true;Engine.cancel();work?.cancel();mutable.value=mutable.value.copy(running=false,activity="",message="Проверка остановлена")}
-    fun run(upload:Boolean){
+    fun run(upload:Boolean,selectBest:Boolean=false){
         if(mutable.value.running||mutable.value.profiles.isEmpty())return
+        if(application.otherVpnActive()){
+            mutable.update{it.copy(recommendedId="",checkedAt=0,checkedEpoch="",message="Не можем проверить маршруты, пока включён другой VPN. Отключите его и повторите проверку.")}
+            return
+        }
         val sourceId=mutable.value.sourceId;val link=subscription;val isExternal=activeSource()?.api==false
         val generation=probeGeneration.incrementAndGet();val previous=work
         cancelled=false;mutable.value=mutable.value.copy(running=true,activity="probe",rows=emptyList(),recommendedId="",completed=0,total=0,message="Подбираем рабочую маску…")
-        work=viewModelScope.launch(Dispatchers.IO){previous?.join();ensureActive();val api=link?.let{ProbeApi(it.origin,it.token){physical.state.value.network}}
+        work=viewModelScope.launch(Dispatchers.IO){previous?.join();ensureActive();val api=link?.let{ProbeApi(it.origin,it.token,application::openControlConnection)}
             try{while(isActive&&!cancelled){
                 mutable.value=mutable.value.copy(message="Ожидаем устойчивую сеть…")
                 val snapshot=physical.state.first{it.network!=null};delay(750);if(physical.state.value.epoch!=snapshot.epoch)continue
-                val run=if(isExternal){JSONObject().put("version",1).put("network_epoch",snapshot.epoch).put("control_url",activeSource()?.cache?.optString("control_url")?:"https://example.com/").put("jobs",JSONArray(mutable.value.profiles))}else try{requireNotNull(api).post("runs",JSONObject().put("network_epoch",snapshot.epoch).put("network_type",if(snapshot.label=="Wi-Fi")"wifi" else if(snapshot.label=="Мобильная сеть")"cellular"else "other").put("engines",JSONArray(listOf("xray","amneziawg"))).put("active_engine",QuantwayVpnService.activeEngine.value))}catch(e:ApiFailure){if(e.status==429){mutable.value=mutable.value.copy(message="Ожидаем разрешения на повтор…");delay(e.retryAfter*1000);continue}else throw e}catch(e:Exception){delay(750);if(physical.state.value.epoch!=snapshot.epoch)continue else throw e}
+                val run=if(isExternal){JSONObject().put("version",1).put("network_epoch",snapshot.epoch).put("control_url",activeSource()?.cache?.optString("control_url")?:"https://example.com/").put("jobs",JSONArray(mutable.value.profiles))}else try{requireNotNull(api).post("runs",JSONObject().put("network_epoch",snapshot.epoch).put("network_type",if(snapshot.label=="Wi-Fi")"wifi" else if(snapshot.label=="Мобильная сеть")"cellular"else "other").put("engines",JSONArray(listOf("xray","amneziawg"))).put("active_engine",QuantwayVpnService.activeEngine.value))}catch(e:ApiFailure){if(e.status==429){android.util.Log.i("QuantwayProbe", "Probe retry in ${e.retryAfter}s");mutable.value=mutable.value.copy(message="Ожидаем разрешения на повтор…");withTimeoutOrNull(e.retryAfter*1000){physical.state.first{it.epoch!=snapshot.epoch}};continue}else throw e}catch(e:Exception){delay(750);if(physical.state.value.epoch!=snapshot.epoch)continue else throw e}
                 require(run.getInt("version")==1&&run.getString("network_epoch")==snapshot.epoch)
                 val jobs=run.getJSONArray("jobs");mutable.value=mutable.value.copy(total=jobs.length(),completed=0)
                 val results=JSONArray();val rows=mutableListOf<String>();var changed=false
+                val observations=mutable.value.observations.toMutableMap()
+                var lastProgressUpdate=0L
                 // Ten workers pull from the whole catalog, so a slow route does
                 // not stall a batch of fast routes. Only the collector mutates UI
                 // state and JSON arrays; native calls always use one snapshot.
@@ -103,7 +144,13 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
                                 val index=next.getAndIncrement()
                                 if(index>=jobs.length())break
                                 val job=jobs.getJSONObject(index)
-                                val result=if(physical.state.value.epoch!=snapshot.epoch)JSONObject().put("job_id",job.getString("job_id")).put("outcome","cancelled").put("reason_code","network_changed").put("elapsed_ms",0)else ProbeExecutor(physical).execute(job,run.getString("control_url"),8_000L,snapshot)
+                                val result=if(physical.state.value.epoch!=snapshot.epoch)JSONObject().put("job_id",job.getString("job_id")).put("outcome","cancelled").put("reason_code","network_changed").put("elapsed_ms",0)else if(isExternal && job.optString("engine")=="amneziawg") QuantwayVpnService.lifecycleGate.withLock {
+                                    val key=awgPrivateKey(job)
+                                    val active=QuantwayVpnService.activeProfile.value ?: QuantwayVpnService.selected
+                                    if(QuantwayVpnService.current!=null && key!=null && key==awgPrivateKey(active))
+                                        JSONObject().put("job_id",job.getString("job_id")).put("outcome","unprobeable").put("reason_code","active_awg_peer").put("elapsed_ms",0)
+                                    else ProbeExecutor(physical).execute(job,run.getString("control_url"),8_000L,snapshot)
+                                } else ProbeExecutor(physical).execute(job,run.getString("control_url"),8_000L,snapshot)
                                 ensureActive()
                                 completed.send(job to result)
                             }
@@ -115,7 +162,12 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
                         if(physical.state.value.epoch!=snapshot.epoch){changed=true;result.put("outcome","cancelled").put("reason_code","network_changed")}
                         results.put(result);val outcome=result.getString("outcome");val id=job.getString("job_id")
                         rows+="${job.probeLabel()} · "+when(outcome){"ok"->"Работает";"fail"->"Не отвечает";"cancelled"->"Повторим в новой сети";else->"Проверка недоступна"}
-                        mutable.value=mutable.value.copy(message="Проверка ${results.length()} из ${jobs.length()}",rows=rows.toList(),completed=results.length(),observations=mutable.value.observations+(id to ProbeObservation(id,job.probeLabel(),outcome,result.optLong("elapsed_ms"),snapshot.epoch,snapshot.label,System.currentTimeMillis())))
+                        observations[id]=ProbeObservation(id,job.probeLabel(),outcome,result.optLong("elapsed_ms"),snapshot.epoch,snapshot.label,System.currentTimeMillis())
+                        val now=android.os.SystemClock.elapsedRealtime()
+                        if(now-lastProgressUpdate>=150 || results.length()==jobs.length()){
+                            mutable.update{it.copy(message="Проверка ${results.length()} из ${jobs.length()}",rows=rows.toList(),completed=results.length(),observations=observations.toMap())}
+                            lastProgressUpdate=now
+                        }
                     }
                 }
                 if(physical.state.value.epoch!=snapshot.epoch)changed=true
@@ -125,18 +177,41 @@ class ProbeViewModel(app:Application):AndroidViewModel(app) {
                 if(changed){mutable.value=mutable.value.copy(rows=emptyList(),observations=emptyMap());continue}
                 val successful=(0 until results.length()).map{results.getJSONObject(it)}.filter{it.getString("outcome")=="ok"}.minByOrNull{it.getLong("elapsed_ms")}
                 val best=successful?.getString("job_id")?:""
-                if(best.isNotBlank()&&QuantwayVpnService.current==null&&sourceId==mutable.value.sourceId){mutable.value=mutable.value.copy(selectedId=best);persist()}
-                mutable.value=mutable.value.copy(recommendedId=best,checkedAt=System.currentTimeMillis(),checkedNetwork=snapshot.label,checkedEpoch=snapshot.epoch,message=if(best.isNotBlank())"Рабочее подключение выбрано"else "Не найдено рабочих маршрутов")
+                if(best.isNotBlank()&&(mutable.value.automatic||selectBest)&&QuantwayVpnService.current==null&&sourceId==mutable.value.sourceId){
+                    mutable.value=mutable.value.copy(selectedId=best,automatic=if(selectBest)true else mutable.value.automatic)
+                    if(selectBest)QuantwayVpnService.automaticMode=true
+                    persist()
+                }
+                mutable.value=mutable.value.copy(recommendedId=best,checkedAt=System.currentTimeMillis(),checkedNetwork=snapshot.label,checkedEpoch=snapshot.epoch,message=if((0 until results.length()).any{results.getJSONObject(it).optString("reason_code")=="active_awg_peer"}) "Активный AWG-маршрут пропущен, чтобы не прерывать VPN" else if(best.isNotBlank())"Рабочее подключение выбрано"else "Не найдено рабочих маршрутов")
                 break
             }}catch(_:CancellationException){throw CancellationException()}catch(e:Exception){mutable.value=mutable.value.copy(message=message(e))}finally{if(probeGeneration.get()==generation)mutable.update{it.copy(running=false,activity="",pending=directory.listFiles{f->f.extension=="json"}?.size?:0)}}
         }
     }
-    fun retry(){val link=subscription?:return;sendReports(ProbeApi(link.origin,link.token){physical.state.value.network},link.origin)}
+    private fun awgPrivateKey(profile:JSONObject?):String? = profile?.optString("awg_conf")?.let {
+        Regex("(?im)^\\s*PrivateKey\\s*=\\s*([^\\s#]+)").find(it)?.groupValues?.get(1)
+    }
+    fun retry(){val link=subscription?:return;sendReports(ProbeApi(link.origin,link.token,application::openControlConnection),link.origin)}
+    private val reportRequests=linkedMapOf<String,Pair<ProbeApi,String>>()
     private fun sendReports(api:ProbeApi,origin:String){
         synchronized(directory){
+            reportRequests[origin+":"+api.scope]=api to origin
             if(reportWork?.isActive==true)return
             reportWork=viewModelScope.launch(Dispatchers.IO){
-                try{flush(api,origin)}catch(_:Exception){}finally{mutable.update{it.copy(pending=directory.listFiles{f->f.extension=="json"}?.size?:0)}}
+                while(true){
+                    val request=synchronized(directory){
+                        val entry=reportRequests.entries.firstOrNull()
+                        if (entry == null) {
+                            reportWork = null
+                            null
+                        } else {
+                            reportRequests.remove(entry.key)
+                            entry.value
+                        }
+                    }
+                    if (request == null) return@launch
+                    try{flush(request.first,request.second)}catch(_:Exception){}
+                    mutable.update{it.copy(pending=directory.listFiles{f->f.extension=="json"}?.size?:0)}
+                }
             }
         }
     }

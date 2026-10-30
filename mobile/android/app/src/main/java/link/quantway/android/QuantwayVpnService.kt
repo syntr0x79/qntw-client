@@ -24,7 +24,7 @@ class QuantwayVpnService : VpnService() {
         @Volatile var selected: JSONObject? = null
         @Volatile var controlURL: String = "https://example.com/"
         @Volatile var profiles: List<JSONObject> = emptyList()
-        private val lifecycleGate = kotlinx.coroutines.sync.Mutex()
+        internal val lifecycleGate = kotlinx.coroutines.sync.Mutex()
         const val STOP = "link.quantway.STOP"
     }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -64,7 +64,7 @@ class QuantwayVpnService : VpnService() {
                             }
                             ensureActive()
                             val chosen = profile ?: error("Нет рабочего подключения")
-                            selected = chosen
+                            selected = profiles.firstOrNull{it.optString("job_id")==chosen.optString("job_id")} ?: chosen
                             val kind = chosen.getString("engine")
                             val conf = chosen.optString("awg_conf")
                             val address = if (kind == "amneziawg") Regex("(?im)^Address\\s*=\\s*([^/\\s]+)").find(conf)?.groupValues?.get(1) ?: error("Нет адреса AWG") else "172.19.0.1"
@@ -83,7 +83,7 @@ class QuantwayVpnService : VpnService() {
                             attemptStage="system network selection"
                             check(withTimeoutOrNull(5_000){while(isActive){val manager=getSystemService(android.net.ConnectivityManager::class.java);if(manager.getNetworkCapabilities(manager.activeNetwork)?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)==true)return@withTimeoutOrNull true;delay(100)};false}==true)
                             attemptStage="system internet check"
-                            check(Engine.checkSystemVPN(controlURL)){"Системное VPN-подключение недоступно"}
+                            check(healthCheck { Engine.checkSystemVPN(it) }){"Системное VPN-подключение недоступно"}
                             appliedRules.value=routingKey(app)
                             activeEngine.value = kind;activeProfile.value=chosen;startedAt.value=android.os.SystemClock.elapsedRealtime();phase.value="connected"
                             state.value = "Подключён · ${chosen.getString("label")} · ${network.label}"
@@ -93,14 +93,16 @@ class QuantwayVpnService : VpnService() {
                     }
                     if (network.network == null) awaitCancellation()
                     if(connected) {
+                        var healthFailures=0
                         while(isActive) {
                             delay(15_000)
                             try {
                                 val manager=getSystemService(android.net.ConnectivityManager::class.java)
                                 check(manager.getNetworkCapabilities(manager.activeNetwork)?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)==true)
-                                check(Engine.checkVPN(controlURL))
-                                check(Engine.checkSystemVPN(controlURL))
-                            }catch(_:Exception){ensureActive();phase.value="reconnecting";state.value="Восстанавливаем соединение…";failedProfile=selected?.getString("job_id");break}
+                                check(healthCheck { Engine.checkVPN(it) })
+                                check(healthCheck { Engine.checkSystemVPN(it) })
+                                healthFailures=0
+                            }catch(_:Exception){ensureActive();healthFailures++;if(healthFailures>=3){phase.value="reconnecting";state.value="Восстанавливаем соединение…";failedProfile=selected?.getString("job_id");break}}
                         }
                     }
                     delay(3_000)
@@ -109,6 +111,8 @@ class QuantwayVpnService : VpnService() {
         }
         return START_NOT_STICKY
     }
+    private fun healthCheck(check:(String)->Boolean):Boolean =
+        listOf(controlURL,"https://www.cloudflare.com/cdn-cgi/trace", "https://www.google.com/generate_204").distinct().any { url -> runCatching { check(url) }.getOrDefault(false) }
     private fun shutdown() {
         if(!stopping.compareAndSet(false,true))return
         reconnect?.cancel();scope.cancel()

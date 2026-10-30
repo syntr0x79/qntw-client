@@ -6,7 +6,7 @@ import org.json.JSONObject
 
 class ApiFailure(val status: Int, val retryAfter: Long = 5) : Exception("Сервер ответил $status")
 
-class ProbeApi(base: String, private val token: String, private val network: (() -> android.net.Network?)? = null) {
+class ProbeApi(base: String, private val token: String, private val openConnection: ((java.net.URL) -> HttpURLConnection)? = null) {
     private val origin: String
     val scope = java.security.MessageDigest.getInstance("SHA-256").digest(token.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
     init {
@@ -19,8 +19,7 @@ class ProbeApi(base: String, private val token: String, private val network: (()
     fun profiles(): JSONObject = request("GET", "/api/mobile/v1/profiles", null)
     private fun request(method: String, path: String, body: JSONObject?): JSONObject {
         val url = URI("$origin$path").toURL()
-        val physical = network?.invoke() ?: (QuantwayVpnService.current?.application as? QuantwayApplication)?.physical?.state?.value?.network
-        val connection = (physical?.openConnection(url) ?: url.openConnection()) as HttpURLConnection
+        val connection = openConnection?.invoke(url) ?: (url.openConnection() as HttpURLConnection)
         try {
             connection.requestMethod = method
             connection.instanceFollowRedirects = false

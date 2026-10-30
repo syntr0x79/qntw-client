@@ -106,3 +106,22 @@ func TestTunDetachedContextUsesVPNOwner(t *testing.T) {
 		t.Fatalf("late VPN dial accepted: %v", err)
 	}
 }
+
+func TestStoppedCoreCannotBorrowNewProbeNetwork(t *testing.T) {
+	instance := &core.Instance{}
+	rememberCore(instance)
+	state.Lock()
+	oldNetwork, oldTunnelNetwork := state.network, state.tunnelNetwork
+	state.network, state.tunnelNetwork = &testNetwork{}, nil
+	state.Unlock()
+	defer func() {
+		state.Lock()
+		state.network, state.tunnelNetwork = oldNetwork, oldTunnelNetwork
+		state.Unlock()
+	}()
+	ctx := context.WithValue(context.Background(), core.XrayKey(1), instance)
+	conn, err := (&mobileSystemDialer{}).Dial(ctx, nil, xnet.UDPDestination(xnet.LocalHostIP, 443), nil)
+	if conn != nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("stopped core opened socket: %v", err)
+	}
+}

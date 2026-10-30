@@ -9,12 +9,14 @@ import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Before
 import java.net.HttpURLConnection
 import java.net.URL
 import java.io.ByteArrayOutputStream
 
 class AppNavigationTest {
     @get:Rule val ui=createAndroidComposeRule<MainActivity>()
+    @Before fun waitForStartup(){ui.waitUntil(15_000){ui.onAllNodesWithTag("nav-account").fetchSemanticsNodes().isNotEmpty()}}
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val context get()=instrumentation.targetContext
     private val app get()=context.applicationContext as QuantwayApplication
@@ -31,13 +33,26 @@ class AppNavigationTest {
     @Test fun navigationRealSubscriptionProbeVPNAndPreferences(){
         android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("appops set link.quantway.android ACTIVATE_VPN allow")).use{it.readBytes()}
         android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("svc wifi enable")).use{it.readBytes()}
-        waitFor("Wi-Fi not ready before UI test",60_000){app.physical.state.value.label=="Wi-Fi"}
+        waitFor("Network not ready before UI test",60_000){app.physical.state.value.network!=null}
         val fixture=request("/fixture");val link=fixture.getString("subscription_url")
         ui.onNodeWithTag("nav-account").performClick();ui.onNodeWithTag("manage-subscriptions").performScrollTo().performClick()
-        ui.onNodeWithTag("add-subscription").performScrollTo().performClick()
+        ui.onNodeWithTag("add-subscription").assertIsDisplayed().performClick()
         ui.onNodeWithTag("subscription-link").performTextInput(link)
         ui.onNodeWithTag("import-submit").performClick()
         waitFor("subscription did not finish importing"){ui.onAllNodesWithTag("vpn-power").fetchSemanticsNodes().isNotEmpty()&&ui.onAllNodesWithText("Всё готово").fetchSemanticsNodes().isNotEmpty()}
+        val autoModel=androidx.lifecycle.ViewModelProvider(ui.activity)[ProbeViewModel::class.java]
+        waitFor("automatic route check did not finish",120_000){!autoModel.state.value.running && autoModel.hasFreshRecommendation()}
+        assertTrue("automatic check did not select its recommendation",autoModel.state.value.automatic && autoModel.state.value.selectedId==autoModel.state.value.recommendedId)
+        ui.onNodeWithTag("home-check-routes").performScrollTo().performClick()
+        ui.onNodeWithTag("recommended-route").assertIsDisplayed()
+        ui.onNodeWithTag("use-recommended-route").assertDoesNotExist()
+        ui.onNodeWithText("Выбран",substring=false).assertExists()
+        val recommendedId=autoModel.state.value.recommendedId
+        val anotherId=autoModel.state.value.profiles.first{it.optString("job_id")!=recommendedId}.getString("job_id")
+        ui.runOnIdle{autoModel.select(anotherId)}
+        ui.onNodeWithTag("use-recommended-route").assertIsDisplayed()
+        ui.onNodeWithTag("use-recommended-route").performClick()
+        assertEquals(recommendedId,autoModel.state.value.selectedId)
         val stored=app.subscriptions.read();assertTrue(stored.getJSONArray("sources").length()>0)
         val raw=java.io.File(context.noBackupFilesDir,"subscriptions.enc").readBytes().toString(Charsets.ISO_8859_1)
         assertFalse("device token persisted without encryption",raw.contains(fixture.getString("token")))
@@ -45,7 +60,7 @@ class AppNavigationTest {
         val data=source.getJSONObject("cache");assertEquals(30,data.getJSONObject("subscription").getInt("days_available"))
         assertTrue(data.getJSONObject("routing").getJSONArray("direct_cidrs").length()>0)
         val profiles=data.getJSONArray("profiles");assertTrue("catalog must exceed six routes",profiles.length()>6);val awg=(0 until profiles.length()).map{profiles.getJSONObject(it)}.first{it.getString("engine")=="amneziawg"}
-        ui.onNodeWithTag("nav-routes").performClick();ui.onNodeWithText("Все",substring=false).performClick();ui.onNodeWithTag("route-${awg.getString("job_id")}").performScrollTo().assertExists()
+        ui.onNodeWithTag("nav-routes").performClick();ui.onNodeWithTag("routes-check").assertIsDisplayed();ui.onNodeWithTag("routes-filters").assertIsDisplayed().performClick();ui.onNodeWithTag("filter-show-all").performClick();ui.onNodeWithTag("route-${awg.getString("job_id")}").performScrollTo().assertExists()
         ui.onNodeWithTag("route-${awg.getString("job_id")}").performScrollTo().performClick()
         ui.onNodeWithTag("vpn-power").performClick()
         waitFor("AWG VPN did not connect: ${QuantwayVpnService.state.value}",60_000){QuantwayVpnService.phase.value=="connected"&&QuantwayVpnService.activeEngine.value=="amneziawg"}
@@ -84,7 +99,7 @@ class AppNavigationTest {
         assertFalse("slow report blocked completed probe",model.state.value.running)
         assertTrue("recommendation waited for report upload",model.state.value.recommendedId.isNotBlank())
         ui.onNodeWithTag("recommended-route").assertIsDisplayed()
-        ui.onNodeWithTag("use-recommended-route").assertIsDisplayed()
+        if(model.state.value.recommendedId==QuantwayVpnService.activeProfile.value?.optString("job_id"))ui.onNodeWithTag("use-recommended-route").assertDoesNotExist() else ui.onNodeWithTag("use-recommended-route").assertIsDisplayed()
         ui.onNodeWithTag("probe-progress").assertDoesNotExist()
         model.state.value.rows.forEach { ui.onNodeWithText(it).assertDoesNotExist() }
         assertEquals("probe did not check the entire catalog",profiles.length(),model.state.value.completed)

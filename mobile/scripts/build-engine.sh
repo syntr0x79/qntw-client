@@ -11,4 +11,4 @@ cd "$mobile_dir"
 gomobile init
 # anet's Android interface cache uses linkname to Go net caches. The pinned
 # Go 1.27 and x/net cache layouts match; recheck on toolchain upgrades.
-gomobile bind -trimpath -ldflags="-s -w -checklinkname=0" -target=android/arm64,android/amd64 -androidapi=26 -o android/app/libs/quantway-engine.aar ./engine
+gomobile bind -trimpath -ldflags="-s -w -checklinkname=0" -target=android/arm,android/arm64,android/386,android/amd64 -androidapi=26 -o android/app/libs/quantway-engine.aar ./engine

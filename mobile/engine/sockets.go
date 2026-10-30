@@ -7,13 +7,41 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"weak"
 
 	xnet "github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/transport/internet"
 )
 
+var knownCores = struct {
+	sync.Mutex
+	instances map[weak.Pointer[core.Instance]]struct{}
+}{instances: make(map[weak.Pointer[core.Instance]]struct{})}
+
+func rememberCore(instance *core.Instance) {
+	knownCores.Lock()
+	defer knownCores.Unlock()
+	for key := range knownCores.instances {
+		if key.Value() == nil {
+			delete(knownCores.instances, key)
+		}
+	}
+	knownCores.instances[weak.Make(instance)] = struct{}{}
+}
+func wasOwnedCore(instance *core.Instance) bool {
+	knownCores.Lock()
+	defer knownCores.Unlock()
+	_, found := knownCores.instances[weak.Make(instance)]
+	return found
+}
+
 type socketOwnerKey struct{}
+
+var probeOwners = struct {
+	sync.Mutex
+	instances map[*core.Instance]*socketOwner
+}{instances: make(map[*core.Instance]*socketOwner)}
 
 // XHTTP keeps HTTP/3 clients outside core.Instance and deliberately strips
 // request cancellation. Own the physical sockets instead of trusting that pool
@@ -82,6 +110,14 @@ func (*mobileSystemDialer) Dial(ctx context.Context, src xnet.Address, dest xnet
 				owner = state.tunnelOwner
 			}
 			state.Unlock()
+			if owner == nil {
+				probeOwners.Lock()
+				owner = probeOwners.instances[instance]
+				probeOwners.Unlock()
+			}
+			if owner == nil && wasOwnedCore(instance) {
+				return nil, context.Canceled
+			}
 		}
 	}
 	var network Network

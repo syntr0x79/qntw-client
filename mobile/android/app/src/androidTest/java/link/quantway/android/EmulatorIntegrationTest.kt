@@ -195,6 +195,20 @@ class EmulatorIntegrationTest {
                 assertNotEquals("Probe reused VPN peer",profiles.first{it.getString("engine")=="amneziawg"}.getString("awg_conf"),awgJob.getString("awg_conf"))
                 val probe=runBlocking {ProbeExecutor(application.physical).execute(awgJob,response.second.getString("control_url"),15_000,snapshot)}
                 assertEquals("Probe failed with $engine VPN active: $probe","ok",probe.getString("outcome"))
+                if (engine == "amneziawg") {
+                    val model=ProbeViewModel(application)
+                    val external="$origin/external-subscription"
+                    model.importLink(external)
+                    awaitCondition("External subscription did not import"){!model.state.value.running && model.state.value.sources.any{it.url==external}}
+                    model.activate(model.state.value.sources.first{it.url==external}.id)
+                    model.run(false)
+                    awaitCondition("External check did not finish",90_000){!model.state.value.running}
+                    assertTrue("Active AWG peer was not skipped",model.state.value.message.startsWith("Активный AWG"))
+                    val stillOnline=URL("https://example.com/?quantway-same-peer").openConnection() as HttpURLConnection
+                    stillOnline.connectTimeout=5_000;stillOnline.readTimeout=5_000
+                    try { assertEquals("Same-peer check interrupted AWG",200,stillOnline.responseCode) } finally { stillOnline.disconnect() }
+                    model.cancel()
+                }
                 val browser=instrumentation.startActivitySync(android.content.Intent(context,AccountActivity::class.java).putExtra("url","https://example.com/?quantway-webview=$engine").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
                 try {
                     awaitCondition("Browser did not load through $engine",30_000){
@@ -267,7 +281,35 @@ class EmulatorIntegrationTest {
             assertEquals(56,result.observations.size)
             assertEquals("56 real VLESS probes must succeed",56,result.observations.values.count{it.outcome=="ok"})
             assertTrue("Recommendation missing",result.recommendedId.isNotBlank())
+            model.refresh()
+            awaitCondition("Subscription refresh did not finish"){!model.state.value.running}
+            assertEquals("Refresh discarded observations",56,model.state.value.observations.size)
+            assertEquals("Refresh discarded recommendation",result.recommendedId,model.state.value.recommendedId)
+            shell("svc wifi disable")
+            try {
+                awaitCondition("Network did not change"){app.physical.state.value.epoch!=result.checkedEpoch}
+                awaitCondition("Old network recommendation remained active"){model.state.value.recommendedId.isEmpty()}
+            } finally { shell("svc wifi enable") }
             android.util.Log.i("QuantwayIntegration","56 routes / 10 workers completed in ${android.os.SystemClock.elapsedRealtime()-started} ms")
+        } finally {model.cancel()}
+    }
+
+    @Test fun f_reportsAddedDuringSendAreDrained() {
+        val origin=testbed()
+        val app=InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as QuantwayApplication
+        val model=ProbeViewModel(app)
+        try {
+            model.importLink(request(origin,"/fixture").second.getString("subscription_url"))
+            awaitCondition("Subscription did not import"){!model.state.value.running && model.state.value.profiles.isNotEmpty()}
+            request(origin,"/arm-delayed-report")
+            model.run(true)
+            awaitCondition("Report did not start",90_000){request(origin,"/status").second.optBoolean("report_in_flight")}
+            val dir=java.io.File(app.noBackupFilesDir,"probe-outbox")
+            val original=dir.listFiles{f->f.extension=="json"}!!.first()
+            val duplicate=java.io.File(dir,"review-duplicate.json")
+            original.copyTo(duplicate,overwrite=true)
+            model.retry()
+            awaitCondition("New report remained in outbox",40_000){!duplicate.exists()}
         } finally {model.cancel()}
     }
 

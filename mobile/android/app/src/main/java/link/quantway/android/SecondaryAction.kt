@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
+        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp).tvFocus(),
         shape = RoundedCornerShape(14.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
@@ -30,6 +30,6 @@ import androidx.compose.ui.unit.dp
             Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, textAlign = TextAlign.Center)
+        Text(text, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelLarge)
     }
 }

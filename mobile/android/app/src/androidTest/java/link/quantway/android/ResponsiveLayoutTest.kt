@@ -74,4 +74,79 @@ class ResponsiveLayoutTest {
         assertTrue("latency must sit to the right of the route name",latency.left>=name.right)
     }
 
+    @Test fun redesignedThemesKeepLongRouteAndActionReadable(){
+        val name="Длинное название маршрута в Соединённые Штаты Америки"
+        var selected=false
+        ui.setContent {
+            val density=LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density,1.4f)) {
+                Column(Modifier.width(320.dp).verticalScroll(rememberScrollState())) {
+                    listOf(true,false).forEach { dark ->
+                        QuantwayTheme(dark) {
+                            Surface(color=MaterialTheme.colorScheme.background) {
+                                Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+                                    Heading(if(dark)"Тёмная тема" else "Светлая тема","Подключение и маршруты")
+                                    RouteCard(JSONObject().put("job_id",if(dark)"dark-route" else "light-route").put("label",name).put("engine","xray"),false,null,"wifi") {selected=true}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        ui.onNodeWithTag("route-dark-route").assertIsDisplayed().performClick()
+        assertTrue(selected)
+        ui.onNodeWithTag("route-light-route").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun loadingScreensShowBrandAndRealProgress(){
+        ui.setContent {
+            QuantwayTheme(true) {
+                Column(Modifier.width(320.dp).verticalScroll(rememberScrollState())) {
+                    Box(Modifier.height(500.dp)) { StartupSplash() }
+                    SubscriptionLoading()
+                }
+            }
+        }
+        ui.onNodeWithTag("startup-splash").assertIsDisplayed()
+        ui.onNodeWithText("Quantway").assertIsDisplayed()
+        ui.onNodeWithTag("subscription-loading").performScrollTo().assertIsDisplayed()
+        ui.onNodeWithText("Загружаем подписку").assertIsDisplayed()
+    }
+
+    @Test fun connectionSummaryShowsMeasuredDataAndOpensRoutes(){
+        var clicked=false
+        ui.setContent {
+            val density=LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density,1.5f)) {
+                QuantwayTheme(true) {
+                    ConnectionSummary(JSONObject().put("job_id","route").put("label","Нидерланды — Амстердам").put("protocol","vless").put("transport","xhttp"),true,true,"Wi-Fi",ProbeObservation("route","", "ok",123,"wifi","Wi-Fi",0),"wifi") {clicked=true}
+                }
+            }
+        }
+        ui.onNodeWithText("Нидерланды — Амстердам").assertIsDisplayed()
+        ui.onNodeWithText("Wi-Fi").assertIsDisplayed()
+        ui.onNodeWithText("123 мс").assertIsDisplayed()
+        ui.onNodeWithText("Автоматически").assertIsDisplayed()
+        ui.onNodeWithTag("selected-route").assertIsDisplayed().performClick()
+        assertTrue(clicked)
+    }
+
+    @Test fun compactRouteFilterSwitchesModeAndProtocol(){
+        val all=androidx.compose.runtime.mutableStateOf(true)
+        val protocol=androidx.compose.runtime.mutableStateOf("Все протоколы")
+        ui.setContent {
+            QuantwayTheme(true) {
+                RouteFilters(all.value,protocol.value,listOf("Все протоколы","AWG","Xray"),{all.value=it},{protocol.value=it})
+            }
+        }
+        ui.onNodeWithTag("routes-filters").assertIsDisplayed().performClick()
+        ui.onNodeWithTag("filter-show-best").assertIsDisplayed().performClick()
+        assertFalse(all.value)
+        ui.onNodeWithTag("routes-filters").performClick()
+        ui.onNodeWithTag("protocol-AWG").performClick()
+        assertEquals("AWG",protocol.value)
+        ui.onNodeWithText("Лучшие маршруты · AWG").assertIsDisplayed()
+    }
+
 }
