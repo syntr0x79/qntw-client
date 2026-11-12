@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
-"""Run a GTK assertion fixture without claiming the desktop D-Bus application ID.
+"""Run a GTK assertion fixture with a unique test-only D-Bus application ID.
 
 Fixtures can create several application instances in one test process. Production
-keeps its normal single-instance application ID; only this test runner removes it.
+keeps its normal single-instance application ID; only this test runner assigns isolated instance IDs.
 """
 from pathlib import Path
+import itertools
+import os
 import runpy
 import sys
 
 from quantway import Quantway
 
 original_init = Quantway.__init__
+instances = itertools.count()
 
 
 def isolated_init(self, *args, **kwargs):
     original_init(self, *args, **kwargs)
-    self.set_application_id(None)
+    self.set_application_id(f"link.quantway.fixture.p{os.getpid()}.n{next(instances)}")
 
 
 if __name__ == '__main__':

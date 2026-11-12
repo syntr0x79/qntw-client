@@ -2,6 +2,18 @@ name: Build Android
 on:
   push:
     branches: [main]
+    paths:
+      - mobile/android/**
+      - mobile/engine/**
+      - mobile/tincbridge/**
+      - mobile/native/**
+      - internal/**
+      - go.mod
+      - go.sum
+      - mobile/go.mod
+      - mobile/go.sum
+      - mobile/scripts/build-engine.sh
+      - .github/workflows/android.yml
   pull_request:
   workflow_dispatch:
 permissions:
