@@ -1,0 +1,68 @@
+name: Verify native clients
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: mobile/go.mod
+          cache-dependency-path: |
+            go.sum
+            mobile/go.sum
+      - name: Shared protocols and client tests
+        run: make test
+      - name: Transport ownership race tests
+        run: go -C mobile test -race -timeout=180s ./engine ./tincbridge
+      - name: Python client and packaging tests
+        run: make test-python
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, windows]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: mobile/go.mod
+          cache-dependency-path: |
+            go.sum
+            mobile/go.sum
+      - run: go -C mobile build ./...
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+
+  gtk-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install GTK test runtime
+        run: sudo apt-get update && sudo apt-get install -y python3-gi python3-cairo gir1.2-gtk-4.0 gir1.2-adw-1 xvfb dbus-x11
+      - name: Run GTK fixtures without production credentials
+        run: |
+          cd mobile/linux/ui
+          for test in test_*.py; do
+            xvfb-run -a dbus-run-session -- /usr/bin/python3 "$test"
+          done

@@ -1,0 +1,55 @@
+<div style="width: 2280px; min-height: 1700px; box-sizing: border-box; padding: 48px; background: #0D141B; color: #E8EEF3; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; gap: 28px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-size: 38px; font-weight: 800">Вход и восстановление</h1>
+<p style="margin: 0; font-size: 15px; line-height: 1.5; color: #93A3B3; max-width: 1100px">Каждая карточка — левая колонка экрана входа (440 px) в одном состоянии. Правая колонка с шагами не меняется. Кнопка «Войти через Telegram» переименована в «Получить код в Telegram»: автоматического возврата в приложение пока нет. Фокус после ошибки: на поле кода; после диалога — на кнопку, которая его открыла.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px">
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="16">
+<div style="padding: 22px; background: #111B23; border: 1px solid #1A2530; border-radius: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; font-weight: 700; color: #93A3B3; font-family: ui-monospace, Menlo, monospace">{{c.id}}</span>
+<span style="font-size: 17px; font-weight: 800">{{c.title}}</span>
+</div>
+
+<sc-if value="{{c.hasInput}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 700">Код входа</span>
+<div style="{{c.inputStyle}}">{{c.inputText}}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{c.hasMsg}}" hint-placeholder-val="{{ true }}">
+<div style="{{c.msgStyle}}">
+<span style="{{c.iconStyle}}">{{c.icon}}</span>
+<span style="font-size: 13px; line-height: 1.5; color: #E8EEF3">{{c.msg}}</span>
+</div>
+</sc-if>
+
+<sc-if value="{{c.hasProgress}}" hint-placeholder-val="{{ false }}">
+<div style="height: 6px; border-radius: 3px; background: #1F2C38; overflow: hidden"><div style="width: 60%; height: 100%; background: #6FD6C8"></div></div>
+</sc-if>
+
+<sc-if value="{{c.hasDevices}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; font-weight: 700; color: #93A3B3">Какое устройство заменить</span>
+<sc-for list="{{c.devices}}" as="d" hint-placeholder-count="3">
+<div style="{{d.style}}"><span style="{{d.radio}}"></span><span style="flex: 1; font-size: 13px; font-weight: 600">{{d.name}}</span><span style="font-size: 12px; color: #93A3B3">{{d.seen}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{c.hasNote}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 12px; line-height: 1.5; color: #93A3B3">{{c.note}}</span>
+</sc-if>
+
+<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto">
+<sc-for list="{{c.acts}}" as="a" hint-placeholder-count="2">
+<span style="{{a.style}}">{{a.label}}</span>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</div>

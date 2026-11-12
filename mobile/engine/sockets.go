@@ -52,10 +52,38 @@ type socketOwner struct {
 	ctx     context.Context
 	closed  bool
 	conns   map[net.Conn]struct{}
+	failure string
 }
 
 func newSocketOwner(ctx context.Context, n Network) *socketOwner {
 	return &socketOwner{network: n, ctx: ctx, conns: make(map[net.Conn]struct{})}
+}
+
+func (o *socketOwner) recordFailure(err error, fallback string) {
+	if o == nil || err == nil {
+		return
+	}
+	reason := probeErrorReason(err)
+	if reason == "request_failed" {
+		reason = fallback
+	}
+	if reason == "cancelled" {
+		return
+	}
+	o.Lock()
+	if o.failure == "" {
+		o.failure = reason
+	}
+	o.Unlock()
+}
+
+func (o *socketOwner) physicalFailure() string {
+	if o == nil {
+		return ""
+	}
+	o.Lock()
+	defer o.Unlock()
+	return o.failure
 }
 func (o *socketOwner) add(c net.Conn) error {
 	o.Lock()
@@ -149,12 +177,17 @@ func (*mobileSystemDialer) Dial(ctx context.Context, src xnet.Address, dest xnet
 	if dest.Address.Family().IsDomain() {
 		ip, e := resolve(ctx, network, host)
 		if e != nil {
+			owner.recordFailure(e, "dns_failed")
 			return nil, e
 		}
 		host = ip
 	}
 	address := net.JoinHostPort(host, dest.Port.String())
-	control := func(_, _ string, raw syscall.RawConn) error { return prepare(raw, network) }
+	control := func(_, _ string, raw syscall.RawConn) error {
+		err := prepare(raw, network)
+		owner.recordFailure(err, "socket_binding_failed")
+		return err
+	}
 	var conn net.Conn
 	if dest.Network == xnet.Network_UDP {
 		target, e := net.ResolveUDPAddr("udp", address)
@@ -168,6 +201,7 @@ func (*mobileSystemDialer) Dial(ctx context.Context, src xnet.Address, dest xnet
 		lc := net.ListenConfig{Control: control}
 		packet, e := lc.ListenPacket(ctx, kind, bind)
 		if e != nil {
+			owner.recordFailure(e, "request_failed")
 			return nil, e
 		}
 		if owner != nil {
@@ -198,6 +232,7 @@ func (*mobileSystemDialer) Dial(ctx context.Context, src xnet.Address, dest xnet
 	var err error
 	conn, err = dialer.DialContext(ctx, "tcp", address)
 	if err != nil {
+		owner.recordFailure(err, "request_failed")
 		return nil, err
 	}
 	if owner != nil {

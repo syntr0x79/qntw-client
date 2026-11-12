@@ -1,0 +1,434 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'"><title>Quantway</title><link rel="stylesheet" href="app.css"><link rel="stylesheet" href="cabinet-a.css"></head><body><div id="app"></div><template id="login"><div style="width: 100%; height: 100vh; box-sizing: border-box; background: #0D141B; color: #E8EEF3; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="height: 36px; padding-left: 16px; display: flex; align-items: center; justify-content: space-between; background: #0A1016; border-bottom: 1px solid #1A2530">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #93A3B3">
+<svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 21V9M12 9l-5-5M12 9l5-5M12 14l-4-3M12 14l4-3"></path></svg>Quantway</div>
+<div style="display: flex">
+<button aria-label="Свернуть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 5h8" stroke="currentColor"></path></svg></button>
+<button aria-label="Закрыть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor"></path></svg></button>
+</div>
+</div>
+
+<div style="flex: 1; display: flex">
+
+<div style="flex: 1; padding: 64px 72px; display: flex; flex-direction: column; justify-content: center; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 13px; font-weight: 700; color: #6FD6C8; letter-spacing: 0.08em; text-transform: uppercase">Шаг 1 из 1</span>
+<h1 style="margin: 0; font-size: 38px; line-height: 1.15; font-weight: 800">Войдите — и VPN<br>включится одной кнопкой</h1>
+<p style="margin: 0; font-size: 15px; line-height: 1.5; color: #93A3B3; max-width: 440px">Получите код в боте @quantway_bot или в личном кабинете на сайте. Подписка этого компьютера загрузится сама.</p>
+</div>
+
+<sc-if value="{{showForm}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px; max-width: 440px">
+<label for="code" style="font-size: 13px; font-weight: 700">Код входа</label>
+<div style="display: flex; gap: 10px">
+<input id="code" placeholder="Например, QW-4821" style="flex: 1; height: 48px; box-sizing: border-box; padding: 0 16px; background: #131D26; border: 1px solid #2A3A48; border-radius: 12px; color: #E8EEF3; font: inherit; font-size: 16px; letter-spacing: 0.06em; outline: none">
+<button sc-camel-on-click="{{login}}" style="height: 48px; padding: 0 24px; border: 0; border-radius: 12px; background: #6FD6C8; color: #072024; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer">Войти</button>
+</div>
+<span style="font-size: 12px; color: #93A3B3">Вход сохраняется в защищённом хранилище macOS</span>
+</div>
+</sc-if>
+<sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; gap: 12px; max-width: 440px; padding: 14px 16px; background: #10302C; border: 1px solid #1F5A52; border-radius: 12px">
+<svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
+<span style="font-size: 14px; font-weight: 700">Готово! Подписка загружена</span>
+<a href="Home.dc.html" style="margin-left: auto; font-size: 14px; font-weight: 800; text-decoration: none">Дальше →</a>
+</div>
+</sc-if>
+
+<div style="display: flex; align-items: center; gap: 16px; max-width: 440px">
+<div style="flex: 1; height: 1px; background: #1F2C38"></div>
+<span style="font-size: 12px; color: #93A3B3">или</span>
+<div style="flex: 1; height: 1px; background: #1F2C38"></div>
+</div>
+
+<div style="display: flex; gap: 10px; max-width: 440px">
+<a href="#" style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #2A3A48; border-radius: 12px; text-decoration: none; color: #E8EEF3; font-size: 14px; font-weight: 700">
+<svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 4L3 11l6 2 2 7 3-4 5 4z"></path></svg>Войти через Telegram</a>
+<a href="Cabinet.dc.html" style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid #2A3A48; border-radius: 12px; text-decoration: none; color: #E8EEF3; font-size: 14px; font-weight: 700">У меня другой VPN</a>
+</div>
+</div>
+
+<div style="width: 420px; background: #0F1A22; border-left: 1px solid #1A2530; padding: 48px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 20px">
+<div style="width: 180px; height: 180px; align-self: center; border-radius: 50%; border: 1px solid #1F5A52; display: flex; align-items: center; justify-content: center; background: #0F2A28">
+<div style="width: 120px; height: 120px; border-radius: 50%; background: #13403A; display: flex; align-items: center; justify-content: center">
+<svg width="56" height="56" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px">
+<div style="display: flex; gap: 12px; align-items: flex-start"><span style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 8px; background: #13403A; color: #6FD6C8; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">1</span><span style="font-size: 14px; line-height: 1.45; color: #C5D0DA">Откройте @quantway_bot и нажмите «Код для ПК»</span></div>
+<div style="display: flex; gap: 12px; align-items: flex-start"><span style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 8px; background: #13403A; color: #6FD6C8; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">2</span><span style="font-size: 14px; line-height: 1.45; color: #C5D0DA">Вставьте код слева</span></div>
+<div style="display: flex; gap: 12px; align-items: flex-start"><span style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 8px; background: #13403A; color: #6FD6C8; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">3</span><span style="font-size: 14px; line-height: 1.45; color: #C5D0DA">Нажмите большую кнопку — готово</span></div>
+</div>
+</div>
+
+</div>
+</div></template><template id="home"><div style="width: 100%; height: 100vh; box-sizing: border-box; background: #0D141B; color: #E8EEF3; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="height: 36px; padding-left: 16px; display: flex; align-items: center; justify-content: space-between; background: #0A1016; border-bottom: 1px solid #1A2530">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #93A3B3">
+<svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 21V9M12 9l-5-5M12 9l5-5M12 14l-4-3M12 14l4-3"></path></svg>Quantway</div>
+<div style="display: flex">
+<button aria-label="Свернуть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 5h8" stroke="currentColor"></path></svg></button>
+<button aria-label="Закрыть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor"></path></svg></button>
+</div>
+</div>
+
+<div style="flex: 1; display: flex; min-height: 0">
+
+<nav style="width: 220px; background: #111B23; border-right: 1px solid #1A2530; padding: 20px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+<a href="P0-Connect.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; background: #1A2833; color: #E8EEF3; text-decoration: none; font-size: 14px; font-weight: 700">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"></path><path d="M6.3 6.8a8 8 0 1 0 11.4 0"></path></svg>Главная</a>
+<a href="P0-TincCountries.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; color: #93A3B3; text-decoration: none; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg>Маршруты</a>
+<a href="Cabinet.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; color: #93A3B3; text-decoration: none; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1-4 4-6 8-6s7 2 8 6"></path></svg>Кабинет</a>
+<div style="flex: 1"></div>
+<div style="padding: 12px; border-radius: 12px; background: #0D141B; border: 1px solid #1A2530; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="{{dotStyle}}"></span><span style="font-size: 13px; font-weight: 700">{{shortStatus}}</span></div>
+<span style="font-size: 12px; color: #93A3B3">{{subLine}}</span>
+</div>
+</nav>
+
+<main style="flex: 1; padding: 28px 32px; display: flex; gap: 24px; min-width: 0">
+
+<div style="flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 0">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h1 style="margin: 0; font-size: 24px; font-weight: 800">Главная</h1>
+<div style="display: flex; padding: 4px; background: #131D26; border: 1px solid #1F2C38; border-radius: 12px">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+<button sc-camel-on-click="{{m.pick}}" disabled="{{m.disabled}}" style="{{m.style}}">{{m.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="flex: 1; background: #111B23; border: 1px solid #1A2530; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 20px; box-sizing: border-box">
+<button id="source-trigger" sc-camel-on-click="{{sourceMenu}}" style="border: 0; background: transparent; padding: 0; font: inherit; font-size: 13px; color: #93A3B3; text-align: center">{{route}} ▾</button>
+<button sc-camel-on-click="{{main}}" aria-label="{{mainLabel}}" disabled="{{mainDisabled}}" style="{{ringStyle}}">
+<div style="{{coreStyle}}">
+<sc-if value="{{icPower}}" hint-placeholder-val="{{ true }}"><svg width="52" height="52" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"></path><path d="M6.3 6.8a8 8 0 1 0 11.4 0"></path></svg></sc-if>
+<sc-if value="{{icBusy}}" hint-placeholder-val="{{ false }}"><svg width="52" height="52" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 1-9 9"></path><circle cx="12" cy="12" r="1.5"></circle></svg></sc-if>
+<sc-if value="{{icLock}}" hint-placeholder-val="{{ false }}"><svg width="52" height="52" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg></sc-if>
+<sc-if value="{{icAlert}}" hint-placeholder-val="{{ false }}"><svg width="52" height="52" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg></sc-if>
+</div>
+</button>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 460px; text-align: center">
+<span style="{{titleStyle}}">{{title}}</span>
+<span style="font-size: 14px; line-height: 1.45; color: #93A3B3">{{sub}}</span>
+</div>
+<sc-if value="{{hasExtra}}" hint-placeholder-val="{{ false }}">
+<div style="max-width: 460px; padding: 12px 14px; background: #0D141B; border: 1px solid #22323F; border-radius: 12px; font-size: 13px; line-height: 1.5; color: #C5D0DA">{{extra}}</div>
+</sc-if>
+<div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center">
+<sc-for list="{{actions}}" as="a" hint-placeholder-count="2">
+<sc-if value="{{a.isLink}}" hint-placeholder-val="{{ false }}"><a href="{{a.href}}" style="{{a.style}}">{{a.label}}</a></sc-if>
+<sc-if value="{{a.isBtn}}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{a.go}}" disabled="{{a.disabled}}" style="{{a.style}}">{{a.label}}</button></sc-if>
+</sc-for>
+</div>
+</div>
+</div>
+
+<aside class="home-aside" style="width: 280px; display: flex; flex-direction: column; gap: 14px">
+<div style="margin-top: 52px; padding: 16px; background: #111B23; border: 1px solid #1A2530; border-radius: 14px; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 14px; font-weight: 800">Сейчас</span>
+<sc-for list="{{now}}" as="n" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="{{n.dot}}"></span>
+<span style="flex: 1; font-size: 13px; color: #93A3B3">{{n.k}}</span>
+<span style="font-size: 13px; font-weight: 700">{{n.v}}</span>
+</div>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
+<div style="padding: 14px; background: #111B23; border: 1px solid #1A2530; border-radius: 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #93A3B3">{{s.k}}</span><span style="font-size: 18px; font-weight: 800" data-stat="{{s.key}}">{{s.v}}</span></div>
+</sc-for>
+</div>
+<span style="font-size: 12px; line-height: 1.45; color: #93A3B3">{{statsNote}}</span>
+</aside>
+
+</main>
+</div>
+</div></template><template id="routes"><div style="width: 100%; height: 100vh; box-sizing: border-box; background: #0D141B; color: #E8EEF3; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="height: 36px; padding-left: 16px; display: flex; align-items: center; justify-content: space-between; background: #0A1016; border-bottom: 1px solid #1A2530">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #93A3B3">
+<svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 21V9M12 9l-5-5M12 9l5-5M12 14l-4-3M12 14l4-3"></path></svg>Quantway</div>
+<div style="display: flex">
+<button aria-label="Свернуть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 5h8" stroke="currentColor"></path></svg></button>
+<button aria-label="Закрыть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor"></path></svg></button>
+</div>
+</div>
+
+<div style="flex: 1; display: flex; min-height: 0">
+
+<nav style="width: 220px; background: #111B23; border-right: 1px solid #1A2530; padding: 20px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+<a href="Home.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; color: #93A3B3; text-decoration: none; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"></path><path d="M6.3 6.8a8 8 0 1 0 11.4 0"></path></svg>Главная</a>
+<a href="Routes.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; background: #1A2833; color: #E8EEF3; text-decoration: none; font-size: 14px; font-weight: 700">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg>Маршруты</a>
+<a href="Cabinet.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; color: #93A3B3; text-decoration: none; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1-4 4-6 8-6s7 2 8 6"></path></svg>Кабинет</a>
+<div style="flex: 1"></div>
+<div style="padding: 12px; border-radius: 12px; background: #0D141B; border: 1px solid #1A2530; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #6FD6C8"></span><span style="font-size: 13px; font-weight: 700">Подключено</span></div>
+<span style="font-size: 12px; color: #93A3B3">Подписка до 26 ноября</span>
+</div>
+</nav>
+
+<main style="flex: 1; padding: 28px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 24px; font-weight: 800">Маршруты</h1>
+<span style="font-size: 13px; color: #93A3B3">{{checkedText}}</span>
+</div>
+<button sc-camel-on-click="{{check}}" style="height: 40px; padding: 0 16px; display: flex; align-items: center; gap: 8px; border: 1px solid #2A3A48; border-radius: 10px; background: #131D26; color: #E8EEF3; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer">
+<svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"></path></svg>Проверить все</button>
+</div>
+
+<div style="display: flex; gap: 10px; align-items: center">
+<label style="flex: 1; height: 42px; padding: 0 14px; display: flex; align-items: center; gap: 10px; background: #131D26; border: 1px solid #22323F; border-radius: 10px; color: #93A3B3">
+<svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.5-4.5"></path></svg>
+<input placeholder="Страна, город или протокол" style="flex: 1; border: 0; background: transparent; color: #E8EEF3; font: inherit; font-size: 14px; outline: none">
+</label>
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+<button sc-camel-on-click="{{c.pick}}" style="{{c.style}}">{{c.label}}</button>
+</sc-for>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 160px 120px 110px; gap: 12px; padding: 0 16px; font-size: 12px; font-weight: 700; color: #93A3B3; text-transform: uppercase; letter-spacing: 0.06em">
+<span>Маршрут</span><span>Протокол</span><span>Пинг</span><span></span>
+</div>
+
+<div style="flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: auto">
+<sc-for list="{{routes}}" as="r" hint-placeholder-count="6">
+<div style="{{r.rowStyle}}">
+<div style="display: flex; align-items: center; gap: 12px; min-width: 0">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; background: #172430; color: #C5D0DA; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px">{{r.code}}</span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 14px; font-weight: 700">{{r.name}}</span><span style="font-size: 12px; color: #93A3B3">{{r.note}}</span></span>
+</div>
+<span style="font-size: 13px; color: #C5D0DA">{{r.proto}}</span>
+<span style="{{r.pingStyle}}">{{r.ping}}</span>
+<button sc-camel-on-click="{{r.pick}}" disabled="{{r.dis}}" style="{{r.btnStyle}}">{{r.btnText}}</button>
+</div>
+</sc-for>
+</div>
+</main>
+</div>
+</div></template><template id="cabinet"><div style="width: 100%; height: 100vh; box-sizing: border-box; background: #0D141B; color: #E8EEF3; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="height: 36px; padding-left: 16px; display: flex; align-items: center; justify-content: space-between; background: #0A1016; border-bottom: 1px solid #1A2530">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #93A3B3">
+<svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 21V9M12 9l-5-5M12 9l5-5M12 14l-4-3M12 14l4-3"></path></svg>Quantway</div>
+<div style="display: flex">
+<button aria-label="Свернуть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 5h8" stroke="currentColor"></path></svg></button>
+<button aria-label="Закрыть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor"></path></svg></button>
+</div>
+</div>
+
+<div style="flex: 1; display: flex; min-height: 0">
+
+<nav style="width: 220px; background: #111B23; border-right: 1px solid #1A2530; padding: 20px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+<a href="Home.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; color: #93A3B3; text-decoration: none; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"></path><path d="M6.3 6.8a8 8 0 1 0 11.4 0"></path></svg>Главная</a>
+<a href="Routes.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; color: #93A3B3; text-decoration: none; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg>Маршруты</a>
+<a href="Cabinet.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; background: #1A2833; color: #E8EEF3; text-decoration: none; font-size: 14px; font-weight: 700">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1-4 4-6 8-6s7 2 8 6"></path></svg>Кабинет</a>
+<div style="flex: 1"></div>
+<div style="padding: 12px; border-radius: 12px; background: #0D141B; border: 1px solid #1A2530; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #6FD6C8"></span><span style="font-size: 13px; font-weight: 700">Подключено</span></div>
+<span style="font-size: 12px; color: #93A3B3">Подписка до 26 ноября</span>
+</div>
+</nav>
+
+<main style="flex: 1; padding: 28px 32px; display: flex; flex-direction: column; gap: 18px; min-width: 0">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h1 style="margin: 0; font-size: 24px; font-weight: 800">Кабинет</h1>
+<div style="display: flex; padding: 4px; background: #131D26; border: 1px solid #1F2C38; border-radius: 12px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+<button sc-camel-on-click="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{isSub}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<div style="padding: 20px; background: #111B23; border: 1px solid #1A2530; border-radius: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 13px; color: #93A3B3">Тариф</span><span style="padding: 4px 10px; border-radius: 8px; background: #13403A; color: #6FD6C8; font-size: 12px; font-weight: 800">Активна</span></div>
+<span style="font-size: 22px; font-weight: 800">Quantway · 1 месяц</span>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 8px; border-radius: 4px; background: #1F2C38; overflow: hidden"><div style="width: 77%; height: 100%; background: #6FD6C8"></div></div>
+<span style="font-size: 13px; color: #93A3B3">Осталось 23 дня · до 26 ноября</span>
+</div>
+<div style="display: flex; gap: 10px; margin-top: 4px">
+<a href="#" style="height: 44px; padding: 0 20px; display: flex; align-items: center; border-radius: 12px; background: #6FD6C8; color: #072024; text-decoration: none; font-size: 14px; font-weight: 800">Продлить</a>
+<a href="#" style="height: 44px; padding: 0 16px; display: flex; align-items: center; border-radius: 12px; border: 1px solid #2A3A48; color: #E8EEF3; text-decoration: none; font-size: 14px; font-weight: 700">Ввести промокод</a>
+</div>
+</div>
+
+<div style="padding: 20px; background: #111B23; border: 1px solid #1A2530; border-radius: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 15px; font-weight: 800">Устройства</span><span style="font-size: 13px; color: #93A3B3">2 из 3</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #1A2530"><span style="flex: 1; font-size: 14px; font-weight: 600">Этот Mac · macOS</span><span style="font-size: 12px; color: #6FD6C8">в сети</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #1A2530"><span style="flex: 1; font-size: 14px; font-weight: 600">Телефон · Happ</span><button style="height: 32px; padding: 0 10px; border: 1px solid #2A3A48; border-radius: 8px; background: transparent; color: #C5D0DA; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer">Отвязать</button></div>
+<button style="height: 40px; border: 1px dashed #2E4050; border-radius: 10px; background: transparent; color: #6FD6C8; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer">+ Подключить телефон по QR</button>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<a href="#" style="padding: 18px 20px; display: flex; align-items: center; gap: 14px; background: #111B23; border: 1px solid #1A2530; border-radius: 16px; text-decoration: none; color: #E8EEF3">
+<span style="width: 40px; height: 40px; border-radius: 12px; background: #172430; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 4L3 11l6 2 2 7 3-4 5 4z"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 800">Прокси для Telegram</span><span style="font-size: 12px; color: #93A3B3">Подключить в один клик</span></span></a>
+<a href="#" style="padding: 18px 20px; display: flex; align-items: center; gap: 14px; background: #111B23; border: 1px solid #1A2530; border-radius: 16px; text-decoration: none; color: #E8EEF3">
+<span style="width: 40px; height: 40px; border-radius: 12px; background: #172430; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 20c.8-3.5 3-5 6-5s5.2 1.5 6 5M17 8v6M14 11h6"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 800">Пригласить друга</span><span style="font-size: 12px; color: #93A3B3">[БОНУС] за каждого друга</span></span></a>
+</div>
+</sc-if>
+
+<sc-if value="{{isOther}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 640px">
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #93A3B3">Есть подписка другого провайдера? Добавьте ссылку, и её можно будет включать с Главной. Вход в Quantway не нужен.</p>
+<div style="padding: 16px 20px; display: flex; align-items: center; gap: 14px; background: #111B23; border: 1px solid #1A2530; border-radius: 14px">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 700">Рабочий VPN</span><span style="font-size: 12px; color: #93A3B3">https://sub.example…/a8f3 · проверено, работает</span></span>
+<button style="height: 36px; padding: 0 12px; border: 1px solid #2A3A48; border-radius: 9px; background: transparent; color: #C5D0DA; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer">Удалить</button>
+</div>
+<div style="padding: 20px; background: #111B23; border: 1px solid #1A2530; border-radius: 14px; display: flex; flex-direction: column; gap: 12px">
+<label for="pn" style="font-size: 13px; font-weight: 700">Название</label>
+<input id="pn" placeholder="Например, рабочий VPN" style="height: 44px; box-sizing: border-box; padding: 0 14px; background: #0D141B; border: 1px solid #2A3A48; border-radius: 10px; color: #E8EEF3; font: inherit; font-size: 14px; outline: none">
+<label for="pl" style="font-size: 13px; font-weight: 700">Ссылка на подписку</label>
+<input id="pl" placeholder="https://…" style="height: 44px; box-sizing: border-box; padding: 0 14px; background: #0D141B; border: 1px solid #2A3A48; border-radius: 10px; color: #E8EEF3; font: inherit; font-size: 14px; outline: none">
+<button style="align-self: flex-start; height: 44px; padding: 0 20px; border: 0; border-radius: 12px; background: #6FD6C8; color: #072024; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer">Добавить и проверить</button>
+<span style="font-size: 12px; color: #93A3B3">Подписки сохраняются на этом компьютере</span>
+</div>
+</div>
+</sc-if>
+</main>
+</div>
+</div></template><dialog id="dialog"><div id="dialog-body"></div><button id="dialog-close" aria-label="Закрыть">✕</button></dialog><template id="tinc-routes"><div style="position: relative; width: 100%; height: 100vh; box-sizing: border-box; background: #0D141B; color: #E8EEF3; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="height: 36px; padding-left: 16px; display: flex; align-items: center; justify-content: space-between; background: #0A1016; border-bottom: 1px solid #1A2530">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #93A3B3">
+<svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 21V9M12 9l-5-5M12 9l5-5M12 14l-4-3M12 14l4-3"></path></svg>Quantway</div>
+<div style="display: flex">
+<button aria-label="Свернуть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 5h8" stroke="currentColor"></path></svg></button>
+<button aria-label="Закрыть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor"></path></svg></button>
+</div>
+</div>
+
+<div style="flex: 1; display: flex; min-height: 0">
+
+<nav style="width: 220px; background: #111B23; border-right: 1px solid #1A2530; padding: 20px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
+<a href="P0-Connect.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; color: #93A3B3; text-decoration: none; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"></path><path d="M6.3 6.8a8 8 0 1 0 11.4 0"></path></svg>Главная</a>
+<a href="P0-TincCountries.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; background: #1A2833; color: #E8EEF3; text-decoration: none; font-size: 14px; font-weight: 700">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg>Маршруты</a>
+<a href="Cabinet.dc.html" style="height: 42px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; color: #93A3B3; text-decoration: none; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1-4 4-6 8-6s7 2 8 6"></path></svg>Кабинет</a>
+<div style="flex: 1"></div>
+<div style="padding: 12px; border-radius: 12px; background: #0D141B; border: 1px solid #1A2530; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="{{dotStyle}}"></span><span style="font-size: 13px; font-weight: 700">{{shortStatus}}</span></div>
+<span style="font-size: 12px; color: #93A3B3">Mesh (Tinc)</span>
+</div>
+</nav>
+
+<main style="flex: 1; padding: 28px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 24px; font-weight: 800">Маршруты</h1>
+<span style="font-size: 13px; color: #93A3B3">{{subtitle}}</span>
+</div>
+<div style="display: flex; padding: 4px; background: #131D26; border: 1px solid #1F2C38; border-radius: 12px">
+<a href="Routes.dc.html" style="height: 36px; padding: 0 14px; display: flex; align-items: center; border-radius: 9px; font-size: 13px; font-weight: 700; color: #93A3B3; text-decoration: none">Обычный VPN</a>
+<span style="height: 36px; padding: 0 14px; display: flex; align-items: center; border-radius: 9px; font-size: 13px; font-weight: 700; background: #1F3340; color: #E8EEF3">Mesh (Tinc)</span>
+</div>
+</div>
+
+<sc-if value="{{hasBanner}}" hint-placeholder-val="{{ true }}">
+<div style="{{bannerStyle}}">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 800">{{bannerTitle}}</span><span style="font-size: 13px; color: #C5D0DA">{{bannerText}}</span></span>
+</div>
+</sc-if>
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: 1fr 150px 130px 130px; gap: 12px; padding: 0 16px; font-size: 12px; font-weight: 700; color: #93A3B3; text-transform: uppercase; letter-spacing: 0.06em">
+<span>Страна выхода</span><span>Статус</span><span>Проверка</span><span></span>
+</div>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: auto">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<div style="{{r.rowStyle}}">
+<div style="display: flex; align-items: center; gap: 12px; min-width: 0">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; background: #172430; color: #C5D0DA; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px">{{r.code}}</span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 14px; font-weight: 700">{{r.name}}</span><span style="font-size: 12px; color: #93A3B3">{{r.note}}</span></span>
+</div>
+<span style="{{r.stStyle}}">{{r.st}}</span>
+<span style="font-size: 13px; color: #C5D0DA">{{r.check}}</span>
+<button sc-camel-on-click="{{r.pick}}" disabled="{{r.dis}}" style="{{r.btnStyle}}">{{r.btn}}</button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{skel}}" as="k" hint-placeholder-count="5"><div style="height: 58px; border-radius: 12px; background: #111B23; border: 1px solid #1A2530"></div></sc-for>
+<span style="font-size: 13px; color: #93A3B3">Загружаем страны из подписки…</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center">
+<span style="font-size: 18px; font-weight: 800">{{emptyTitle}}</span>
+<span style="font-size: 14px; color: #93A3B3; max-width: 440px; line-height: 1.5">{{emptyText}}</span>
+<div style="display: flex; gap: 10px; margin-top: 6px">
+<sc-for list="{{emptyActs}}" as="a" hint-placeholder-count="1"><a href="{{a.href}}" style="{{a.style}}">{{a.label}}</a></sc-for>
+</div>
+</div>
+</sc-if>
+</main>
+</div>
+
+<sc-if value="{{confirm}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(5,9,13,0.72); display: flex; align-items: center; justify-content: center">
+<div role="dialog" aria-label="Смена страны" style="width: 440px; padding: 24px; background: #131D26; border: 1px solid #2A3A48; border-radius: 16px; display: flex; flex-direction: column; gap: 14px">
+<span style="font-size: 18px; font-weight: 800">Сменить страну на «{{target}}»?</span>
+<span style="font-size: 14px; line-height: 1.5; color: #C5D0DA">Текущее соединение будет завершено, затем подключимся заново. Пока идёт переключение, данные через VPN не передаются. Действующей остаётся «{{current}}», пока новое соединение не подтвердится.</span>
+<div style="display: flex; gap: 10px; justify-content: flex-end">
+<button sc-camel-on-click="{{cancel}}" style="height: 44px; padding: 0 18px; border: 1px solid #2A3A48; border-radius: 12px; background: transparent; color: #E8EEF3; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer">Отмена</button>
+<button sc-camel-on-click="{{doSwitch}}" style="height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: #6FD6C8; color: #072024; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer">Переключить</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div></template><template id="mesh-panel"><sc-if value="{{isOpen}}" hint-placeholder-val="{{ true }}">
+<div style="position: fixed; top: 36px; left: 0; right: 0; bottom: 0; background: rgba(5,9,13,0.6)"></div>
+<aside role="dialog" aria-label="Состояние сети Mesh (Tinc)" aria-modal="true" tabindex="-1" style="position: fixed; top: 36px; right: 0; bottom: 0; width: 520px; background: #111B23; border-left: 1px solid #2A3A48; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; overflow: auto">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 20px; font-weight: 800">Состояние сети</span><span style="font-size: 12px; color: #93A3B3">Mesh (Tinc) · {{meshAge}}</span></div>
+<button sc-camel-on-click="{{close}}" aria-label="Закрыть панель" style="width: 36px; height: 36px; border: 1px solid #2A3A48; border-radius: 10px; background: transparent; color: #C5D0DA; cursor: pointer"><svg width="12" height="12" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.4"></path></svg></button>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="padding: 14px; background: #0D141B; border: 1px solid #1A2530; border-radius: 12px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #93A3B3">Страна выхода</span><span style="font-size: 16px; font-weight: 800">{{meshCountry}}</span><span style="font-size: 12px; color: #93A3B3">{{meshAssigned}}</span></div>
+<div style="padding: 14px; background: #0D141B; border: 1px solid #1A2530; border-radius: 12px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #93A3B3">Трафик всего</span><span style="font-size: 16px; font-weight: 800">{{meshVolume}}</span><span style="font-size: 12px; color: #93A3B3">с момента подключения</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 14px; font-weight: 800">Соединения со входами Quantway</span>
+<div style="display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 8px; padding: 0 12px; font-size: 11px; font-weight: 700; color: #93A3B3; text-transform: uppercase; letter-spacing: 0.06em"><span>Вход</span><span>Наблюдение</span><span>Объём ↓/↑</span><span>Скорость</span></div>
+<sc-for list="{{entries}}" as="e" hint-placeholder-count="3">
+<div style="display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 8px; align-items: center; padding: 10px 12px; background: #0D141B; border: 1px solid #1A2530; border-radius: 10px; font-size: 12px">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 700">{{e.name}}</span><span style="{{e.stStyle}}">{{e.st}}</span></span>
+<span style="{{e.seenStyle}}">{{e.seen}}</span>
+<span style="color: #C5D0DA">{{e.vol}}</span>
+<span style="color: #C5D0DA">{{e.speed}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="padding: 14px; background: #0D141B; border: 1px solid #22323F; border-radius: 12px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; font-weight: 800">Что здесь показано</span>
+<span style="font-size: 13px; line-height: 1.5; color: #C5D0DA">Mesh (Tinc) подключает этот Mac ко входам Quantway. Страну выхода назначает сервер. Здесь видны только подтверждённые соединения этого Mac со входами. Путь внутри сети Quantway и прямые соединения между вашими устройствами отсюда не наблюдаются.</span>
+</div>
+<span style="font-size: 12px; color: #93A3B3">«—» и «Нет данных»: значение не получено. «Устарело»: последнее наблюдение старше 60 секунд.</span>
+</aside>
+</sc-if></template><script src="design-data.js"></script><script src="components.js"></script><script src="cabinet-a.js"></script><script src="workflows.js"></script><script src="app.js"></script></body></html>

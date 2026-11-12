@@ -1,0 +1,9 @@
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive GSK_RENDERER=cairo
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-gi gir1.2-gtk-4.0 xvfb xauth dbus-x11 fonts-dejavu-core \
+    fonts-noto-color-emoji adwaita-icon-theme imagemagick \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace/mobile/linux/ui
+RUN apt-get update && apt-get install -y --no-install-recommends librsvg2-common \
+    && rm -rf /var/lib/apt/lists/*

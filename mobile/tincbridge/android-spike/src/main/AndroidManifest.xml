@@ -1,0 +1,17 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <application android:label="Tinc bridge spike" android:allowBackup="false"
+        android:hasCode="true">
+        <activity android:name=".HarnessActivity" android:exported="false" />
+        <service android:name=".GuardVpnService" android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false" android:foregroundServiceType="specialUse">
+            <intent-filter><action android:name="android.net.VpnService" /></intent-filter>
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Isolated native tinc socket preparation test" />
+        </service>
+    </application>
+    <instrumentation android:name=".NativeTests" android:targetPackage="link.quantway.tincspike"
+        android:label="Packaged native tinc tests" android:functionalTest="true" />
+</manifest>

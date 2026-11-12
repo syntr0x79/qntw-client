@@ -1,0 +1,16 @@
+Package: quantway
+Version: @VERSION@
+Architecture: @ARCHITECTURE@
+Maintainer: @MAINTAINER@
+Section: net
+Priority: optional
+Installed-Size: @INSTALLED_SIZE@
+Pre-Depends: python3-minimal (>= 3.9)
+Depends: python3 (>= 3.9), python3-gi, gir1.2-gtk-4.0 (>= 4.6), gir1.2-glib-2.0, libglib2.0-0 (>= 2.72) | libglib2.0-0t64 (>= 2.72), librsvg2-common, adwaita-icon-theme, pkexec | policykit-1, polkitd | policykit-1, iproute2, nftables, systemd-resolved | systemd (>= 249), systemd-resolved | systemd (<< 250), ca-certificates, xdg-utils
+Recommends: gnome-keyring, dbus-user-session, fonts-noto-color-emoji
+Homepage: https://qntw.link
+Description: Quantway desktop VPN client
+ Native GTK application for Quantway accounts and external VPN subscriptions.
+ Supports ordinary VPN connections and the separate Tinc client mode.
+ Administrator authorization is requested when connecting, while account
+ sessions use the desktop Secret Service when available.

@@ -1,0 +1,66 @@
+<div style="width: 1100px; height: 700px; box-sizing: border-box; background: #0D141B; color: #E8EEF3; font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+<div style="height: 36px; padding-left: 16px; display: flex; align-items: center; justify-content: space-between; background: #0A1016; border-bottom: 1px solid #1A2530">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #93A3B3">
+<svg width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 21V9M12 9l-5-5M12 9l5-5M12 14l-4-3M12 14l4-3"></path></svg>Quantway</div>
+<div style="display: flex">
+<button aria-label="Свернуть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 5h8" stroke="currentColor"></path></svg></button>
+<button aria-label="Закрыть" style="width: 46px; height: 36px; border: 0; background: transparent; color: #93A3B3"><svg width="10" height="10" sc-camel-view-box="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor"></path></svg></button>
+</div>
+</div>
+
+<div style="flex: 1; display: flex">
+
+<div style="flex: 1; padding: 64px 72px; display: flex; flex-direction: column; justify-content: center; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 13px; font-weight: 700; color: #6FD6C8; letter-spacing: 0.08em; text-transform: uppercase">Шаг 1 из 1</span>
+<h1 style="margin: 0; font-size: 38px; line-height: 1.15; font-weight: 800">Войдите — и VPN<br>включится одной кнопкой</h1>
+<p style="margin: 0; font-size: 15px; line-height: 1.5; color: #93A3B3; max-width: 440px">Получите код в боте @quantway_bot или в личном кабинете на сайте. Подписка этого компьютера загрузится сама.</p>
+</div>
+
+<sc-if value="{{showForm}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px; max-width: 440px">
+<label for="code" style="font-size: 13px; font-weight: 700">Код входа</label>
+<div style="display: flex; gap: 10px">
+<input id="code" placeholder="Например, QW-4821" style="flex: 1; height: 48px; box-sizing: border-box; padding: 0 16px; background: #131D26; border: 1px solid #2A3A48; border-radius: 12px; color: #E8EEF3; font: inherit; font-size: 16px; letter-spacing: 0.06em; outline: none">
+<button sc-camel-on-click="{{login}}" style="height: 48px; padding: 0 24px; border: 0; border-radius: 12px; background: #6FD6C8; color: #072024; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer">Войти</button>
+</div>
+<span style="font-size: 12px; color: #93A3B3">Вход сохраняется в защищённом хранилище Windows</span>
+</div>
+</sc-if>
+<sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; gap: 12px; max-width: 440px; padding: 14px 16px; background: #10302C; border: 1px solid #1F5A52; border-radius: 12px">
+<svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
+<span style="font-size: 14px; font-weight: 700">Готово! Подписка загружена</span>
+<a href="Home.dc.html" style="margin-left: auto; font-size: 14px; font-weight: 800; text-decoration: none">Дальше →</a>
+</div>
+</sc-if>
+
+<div style="display: flex; align-items: center; gap: 16px; max-width: 440px">
+<div style="flex: 1; height: 1px; background: #1F2C38"></div>
+<span style="font-size: 12px; color: #93A3B3">или</span>
+<div style="flex: 1; height: 1px; background: #1F2C38"></div>
+</div>
+
+<div style="display: flex; gap: 10px; max-width: 440px">
+<a href="#" style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #2A3A48; border-radius: 12px; text-decoration: none; color: #E8EEF3; font-size: 14px; font-weight: 700">
+<svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 4L3 11l6 2 2 7 3-4 5 4z"></path></svg>Войти через Telegram</a>
+<a href="Cabinet.dc.html" style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid #2A3A48; border-radius: 12px; text-decoration: none; color: #E8EEF3; font-size: 14px; font-weight: 700">У меня другой VPN</a>
+</div>
+</div>
+
+<div style="width: 420px; background: #0F1A22; border-left: 1px solid #1A2530; padding: 48px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 20px">
+<div style="width: 180px; height: 180px; align-self: center; border-radius: 50%; border: 1px solid #1F5A52; display: flex; align-items: center; justify-content: center; background: #0F2A28">
+<div style="width: 120px; height: 120px; border-radius: 50%; background: #13403A; display: flex; align-items: center; justify-content: center">
+<svg width="56" height="56" sc-camel-view-box="0 0 24 24" fill="none" stroke="#6FD6C8" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px">
+<div style="display: flex; gap: 12px; align-items: flex-start"><span style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 8px; background: #13403A; color: #6FD6C8; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">1</span><span style="font-size: 14px; line-height: 1.45; color: #C5D0DA">Откройте @quantway_bot и нажмите «Код для ПК»</span></div>
+<div style="display: flex; gap: 12px; align-items: flex-start"><span style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 8px; background: #13403A; color: #6FD6C8; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">2</span><span style="font-size: 14px; line-height: 1.45; color: #C5D0DA">Вставьте код слева</span></div>
+<div style="display: flex; gap: 12px; align-items: flex-start"><span style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 8px; background: #13403A; color: #6FD6C8; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">3</span><span style="font-size: 14px; line-height: 1.45; color: #C5D0DA">Нажмите большую кнопку — готово</span></div>
+</div>
+</div>
+
+</div>
+</div>

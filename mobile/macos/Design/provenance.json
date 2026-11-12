@@ -1,0 +1,264 @@
+{
+  "file": "Quantway — концепт приложения2.html",
+  "sha256": "e8de95b318876444e97a59a915248b48dcf8c091d8d8b8661569d0ed3b522e4f",
+  "boards": [
+    {
+      "id": "10f4a090-2927-46dc-9ed5-bee55b02fcc8",
+      "title": "Quantway — вход",
+      "sections": []
+    },
+    {
+      "id": "bb3a84b4-f026-42ca-afc7-a7acc1168276",
+      "title": "Quantway — главная",
+      "sections": []
+    },
+    {
+      "id": "fdafd6ed-5848-422a-bda2-a8be2be3bb63",
+      "title": "Quantway — маршруты",
+      "sections": []
+    },
+    {
+      "id": "6f24d753-6516-4bd5-a343-0b61be9ed4ae",
+      "title": "Quantway — кабинет",
+      "sections": []
+    },
+    {
+      "id": "801716dc-6b73-422e-8828-d9b9f12ff238",
+      "title": "Quantway — сценарий подключения",
+      "sections": []
+    },
+    {
+      "id": "c26f1ead-eb33-4191-9416-b153be0977eb",
+      "title": "Quantway — страны Tinc",
+      "sections": []
+    },
+    {
+      "id": "4f272e07-139b-4f65-840a-80cf638f103a",
+      "title": "Quantway — состояние сети Tinc",
+      "sections": []
+    },
+    {
+      "id": "c741d6ec-757f-4ad2-a866-9badc542d0dd",
+      "title": "Quantway — состояния кнопки",
+      "sections": []
+    },
+    {
+      "id": "87ec7c9c-b2c5-4037-abac-b8d11998093a",
+      "title": "Quantway — состояния входа",
+      "sections": []
+    },
+    {
+      "id": "4143752c-d9e4-45e4-ad36-8b637e6a285c",
+      "title": "Quantway — источники и маршруты",
+      "sections": [
+        {
+          "name": "Выбор источника на главной",
+          "note": "Нажатие на «Источник: Quantway ▾» над большой кнопкой открывает список. Пока VPN включён, смена источника требует подтверждения.",
+          "cards": [
+            "source_menu",
+            "source_external_active",
+            "source_no_routes",
+            "source_updating",
+            "source_error",
+            "source_switch_confirm",
+            "logout_keeps_external"
+          ]
+        },
+        {
+          "name": "Другие VPN (вкладка кабинета)",
+          "note": "«Загрузить» проверяет только формат ссылки и получает список маршрутов. «Проверить маршруты» проверяет доступность. «Работает» пишем только после проверки.",
+          "cards": [
+            "ext_first",
+            "ext_many",
+            "ext_loaded_unchecked",
+            "ext_checked",
+            "ext_format_error",
+            "ext_edit",
+            "ext_reveal",
+            "ext_delete_confirm",
+            "ext_saved",
+            "ext_storage_unavailable"
+          ]
+        },
+        {
+          "name": "Таблица маршрутов",
+          "note": "Колонка «Проверка» — длительность последней проверки, не живой ping. Категории «Игры» и «Мобильный» показываются только по метке, которую прислал сервер.",
+          "cards": [
+            "routes_first_run",
+            "routes_checking",
+            "routes_statuses",
+            "routes_empty",
+            "routes_no_results",
+            "routes_long",
+            "routes_switch"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "84aeb84c-59ac-4d8c-b0b2-3e2f5abd75f0",
+      "title": "Quantway — кабинет и устройства",
+      "sections": [
+        {
+          "name": "Подписка",
+          "note": "Шкала заполняется по доле оставшегося срока. Действия, недоступные по роли, скрыты, а причина показана одной строкой.",
+          "cards": [
+            "sub_active",
+            "sub_trial",
+            "sub_paused",
+            "sub_expired",
+            "sub_pending",
+            "sub_stale",
+            "sub_member_role"
+          ]
+        },
+        {
+          "name": "Устройства",
+          "note": "Статус «в сети» показываем только при актуальных данных сервера. Без них показываем «последнее подключение» или ничего.",
+          "cards": [
+            "dev_list",
+            "dev_create",
+            "dev_rename_error",
+            "dev_block",
+            "dev_delete",
+            "dev_reissue",
+            "dev_link_qr",
+            "dev_replace",
+            "dev_buy_seat",
+            "dev_empty_error",
+            "dev_many"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "6d1a9211-2405-4ae7-b13b-5403037f282e",
+      "title": "Quantway — оплата и операции",
+      "sections": [
+        {
+          "name": "Точки входа",
+          "note": "Решение вместо временного системного меню: боковая панель не расширяется, все операции живут во вкладках раздела «Кабинет». Системное меню «Кабинет» дублирует вкладки для клавиатуры.",
+          "cards": [
+            "cabinet_tabs",
+            "shortcuts"
+          ]
+        },
+        {
+          "name": "Продление, счёт, история",
+          "note": "Счёт оплачивается в браузере. После возврата в приложение статус проверяется автоматически, есть и ручная проверка.",
+          "cards": [
+            "renew",
+            "renew_error",
+            "invoice_pending",
+            "invoice_return",
+            "invoice_paid",
+            "invoice_expired",
+            "invoice_declined",
+            "history",
+            "history_empty"
+          ]
+        },
+        {
+          "name": "Промокод и пауза",
+          "note": "",
+          "cards": [
+            "promo_input",
+            "promo_checking",
+            "promo_applied",
+            "promo_invalid",
+            "promo_used",
+            "pause_confirm",
+            "paused",
+            "resumed"
+          ]
+        },
+        {
+          "name": "Бонусы, прокси Telegram, аккаунт",
+          "note": "",
+          "cards": [
+            "invite",
+            "proxy_available",
+            "proxy_temporary",
+            "proxy_need_payment",
+            "proxy_unavailable",
+            "proxy_reissue",
+            "telegram_link",
+            "telegram_linked",
+            "code_reissue",
+            "code_issued",
+            "purchase_code"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3ffc2a8e-2701-42ca-bfb0-69eb01039d13",
+      "title": "Quantway — поддержка",
+      "sections": [
+        {
+          "name": "Обращения",
+          "note": "",
+          "cards": [
+            "tickets_list",
+            "tickets_empty",
+            "first_ticket",
+            "ticket_closed"
+          ]
+        },
+        {
+          "name": "Переписка",
+          "note": "Фоновое обновление не отнимает фокус и не сдвигает прокрутку. Если пользователь читает историю выше, новые сообщения показываются плашкой «Новые сообщения ↓».",
+          "cards": [
+            "chat",
+            "sending",
+            "send_error",
+            "long_message"
+          ]
+        },
+        {
+          "name": "Вложения",
+          "note": "Только изображения, до 10 МБ на файл, до 5 файлов в сообщении.",
+          "cards": [
+            "attach_preview",
+            "attach_too_big",
+            "attach_uploading",
+            "attach_received"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "e6ae8f25-c66d-45ed-a7bb-22ed4be50e96",
+      "title": "Quantway — компоненты и macOS",
+      "sections": [
+        {
+          "name": "Компоненты",
+          "note": "",
+          "cards": [
+            "buttons",
+            "fields_1",
+            "fields_2",
+            "dialog",
+            "toasts",
+            "error_details",
+            "loading_empty",
+            "a11y"
+          ]
+        },
+        {
+          "name": "Окно и macOS",
+          "note": "Тексты длинных русских подписей переносятся, кнопки растут в высоту и не обрезаются. Размеры в макете заданы в px, при увеличенном системном тексте масштабируются пропорционально (проверить на 125%).",
+          "cards": [
+            "sizes",
+            "titlebar_a",
+            "titlebar_b",
+            "close_active",
+            "quit_active",
+            "crash_recovered",
+            "crash_failed"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+Quantway desktop preview
+=======================
+
+This package contains Quantway application components and bundled third-party
+software. Existing component licenses and copyright notices remain applicable.
+The package metadata does not assign a new license to the application sources.
+
+Bundled tinc
+------------
+Copyright (C) 1998-2021 Ivo Timmermans, Guus Sliepen and others.
+License: GNU General Public License, version 2 or (at your option) any later
+version. The full upstream notice and license are supplied in COPYING.tinc.
+Upstream: https://github.com/gsliepen/tinc
+Pinned upstream revision: 3217d5efb432f5a03beebd5d00b36392ec4b22ef
+
+BUILD-INFO.client and BUILD-INFO.tinc identify the bundled application/native
+sources. These files and COPYING.tinc are preserved with the release documents.

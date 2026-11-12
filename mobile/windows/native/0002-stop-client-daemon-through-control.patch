@@ -1,0 +1,14 @@
+--- a/src/tincctl.c
++++ b/src/tincctl.c
+@@ -1106,7 +1106,10 @@
+ 		return 1;
+ 	}
+ 
+-#ifdef HAVE_MINGW
++#if defined(HAVE_MINGW) && defined(QUANTWAY_WINDOWS_CLIENT)
++	/* The app runs a foreground per-device daemon, never a Windows service. */
++	return stop_tincd() ? 0 : 1;
++#elif defined(HAVE_MINGW)
+ 	return remove_service();
+ #else
+ 

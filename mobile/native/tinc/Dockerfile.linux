@@ -1,0 +1,16 @@
+# Legacy Linux desktop native build; fork stand uses Dockerfile.linux-fork.
+FROM alpine:3.20 AS build
+RUN apk add --no-cache build-base autoconf automake texinfo linux-headers
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH
+COPY source/ /src/
+WORKDIR /src
+RUN autoreconf -fsi \
+ && ./configure --disable-legacy-protocol --disable-lzo --disable-zlib \
+      --disable-readline --disable-curses --disable-manpages --without-systemd \
+      --sysconfdir=/etc --localstatedir=/var LDFLAGS=-static CFLAGS='-O2 -ffile-prefix-map=/src=/quantway-client-tinc' \
+ && make -C src -j4 tincd tinc \
+ && strip src/tincd src/tinc \
+ && mkdir /out && cp src/tincd src/tinc COPYING /out/
+FROM scratch AS artifacts
+COPY --from=build /out/ /

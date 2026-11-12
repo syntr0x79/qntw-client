@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/syntr0x79/qntw-backend/internal/awgprobe"
+	"github.com/syntr0x79/qntw-client/internal/awgprobe"
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/buf"
 	"github.com/xtls/xray-core/common/serial"
@@ -59,7 +59,11 @@ func currentRouting() mobileRouting {
 	defer routingState.Unlock()
 	return routingState.policy
 }
-func tunnelDocument(p mobileRouting) string {
+func tunnelDocument(p mobileRouting, tunName ...string) string {
+	name := "quantway"
+	if len(tunName) > 0 && tunName[0] != "" {
+		name = tunName[0]
+	}
 	rules := []any{}
 	rule := func(tag, key string, v []string) {
 		if len(v) > 0 {
@@ -79,7 +83,7 @@ func tunnelDocument(p mobileRouting) string {
 	}
 	rule("block", "ip", []string{"::/0"})
 	rules = append(rules, map[string]any{"type": "field", "outboundTag": "vpn", "network": "tcp,udp"})
-	doc := map[string]any{"inbounds": []any{map[string]any{"tag": "android-tun", "protocol": "tun", "settings": map[string]any{"name": "quantway", "mtu": 1280}, "sniffing": map[string]any{"enabled": true, "destOverride": []string{"http", "tls", "quic"}, "routeOnly": true}}}, "outbounds": []any{map[string]any{"protocol": "blackhole", "tag": "vpn"}, map[string]any{"protocol": "freedom", "tag": "direct"}, map[string]any{"protocol": "blackhole", "tag": "block"}}, "routing": map[string]any{"domainStrategy": "AsIs", "rules": rules}}
+	doc := map[string]any{"inbounds": []any{map[string]any{"tag": "android-tun", "protocol": "tun", "settings": map[string]any{"name": name, "mtu": 1280}, "sniffing": map[string]any{"enabled": true, "destOverride": []string{"http", "tls", "quic"}, "routeOnly": true}}}, "outbounds": []any{map[string]any{"protocol": "blackhole", "tag": "vpn"}, map[string]any{"protocol": "freedom", "tag": "direct"}, map[string]any{"protocol": "blackhole", "tag": "block"}}, "routing": map[string]any{"domainStrategy": "AsIs", "rules": rules}}
 	b, _ := json.Marshal(doc)
 	return string(b)
 }

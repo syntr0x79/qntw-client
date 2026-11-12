@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/syntr0x79/qntw-backend/internal/mobileprobe/wire"
+	"github.com/syntr0x79/qntw-client/internal/mobileprobe/wire"
 	xnet "github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"

@@ -1,0 +1,23 @@
+--- a/src/script.c
++++ b/src/script.c
+@@ -132,6 +132,13 @@
+ }
+ 
+ bool execute_script(const char *name, environment_t *env) {
++#if defined(HAVE_MINGW) && defined(QUANTWAY_WINDOWS_CLIENT)
++	/* Quantway client: all networking is owned by the Go supervisor. Never
++	 * inspect PATHEXT or invoke a command interpreter from elevated tinc. */
++	(void)name;
++	(void)env;
++	return true;
++#else
+ 	char scriptname[PATH_MAX];
+ 	char *command;
+ 
+@@ -234,4 +241,5 @@
+ 	}
+ 
+ 	return true;
+-}
++#endif
++}

@@ -1,0 +1,15 @@
+{
+  "module": "github.com/xtls/xray-core",
+  "version": "v1.260327.1-0.20260908222543-52a412d9e2f5",
+  "module_sum": "h1:BsUC2sCXcdVCb09SUh1iWku0ci779t4bUIlKUor1ZRI=",
+  "source_file": "proxy/tun/tun_darwin.go",
+  "source_sha256": "89553b16685f64ff56f2f3e14ad9de330c5ceef38aa92eeeee3dae0459ef3763",
+  "patch": "patches/0001-own-duplicate-of-borrowed-darwin-tun.patch",
+  "test": "tests/quantway_fd_ownership_darwin_test.go",
+  "test_overlay_file": "proxy/tun/quantway_fd_ownership_darwin_test.go",
+  "fork_module": "github.com/syntr0x79/Xray-core",
+  "fork_version": "v1.260327.1-0.20261104110251-cf54a5a2cafc",
+  "fork_commit": "cf54a5a2cafce1dac1aaf1ca7eb19ff145030dee",
+  "fork_sum": "h1:WY6M0wz5WorBzrsGC5fu4jI24Yfd4gYKr2GcnjAbimk=",
+  "patched_source_sha256": "20d6bf735b1d85f219a756e1f9058715c2973528e7248417109bf9a759cfb821"
+}

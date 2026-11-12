@@ -1,0 +1,86 @@
+--- a/src/system.h
++++ b/src/system.h
+@@ -33,4 +33,7 @@
+ 
+ #include "dropin.h"
+ 
++/* Client spike: all external sockets require app approval before use. */
++#include "socket_guard.h"
++
+ #endif
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -42,6 +42,7 @@
+ 	chacha-poly1305/poly1305.c chacha-poly1305/poly1305.h
+ 
+ tincd_SOURCES = \
++	socket_guard.c socket_guard.h \
+ 	address_cache.c address_cache.h \
+ 	autoconnect.c autoconnect.h \
+ 	buffer.c buffer.h \
+@@ -106,6 +107,7 @@
+ 	$(chacha_poly1305_SOURCES)
+ 
+ tinc_SOURCES = \
++	socket_guard.c socket_guard.h \
+ 	dropin.c dropin.h \
+ 	fsck.c fsck.h \
+ 	ifconfig.c ifconfig.h \
+@@ -128,6 +130,7 @@
+ 	$(chacha_poly1305_SOURCES)
+ 
+ sptps_test_SOURCES = \
++	socket_guard.c socket_guard.h \
+ 	logger.c logger.h \
+ 	sptps.c sptps.h \
+ 	sptps_test.c \
+@@ -138,12 +141,14 @@
+ 	$(chacha_poly1305_SOURCES)
+ 
+ sptps_keypair_SOURCES = \
++	socket_guard.c socket_guard.h \
+ 	sptps_keypair.c \
+ 	utils.c utils.h \
+ 	ed25519/ecdsagen.c \
+ 	$(ed25519_SOURCES)
+ 
+ sptps_speed_SOURCES = \
++	socket_guard.c socket_guard.h \
+ 	logger.c logger.h \
+ 	sptps.c sptps.h \
+ 	sptps_speed.c \
+--- a/src/net_socket.c
++++ b/src/net_socket.c
+@@ -110,8 +110,8 @@
+ 
+ #if defined(SOL_SOCKET) && defined(SO_BINDTODEVICE)
+ 	memset(&ifr, 0, sizeof(ifr));
+-	strncpy(ifr.ifr_ifrn.ifrn_name, iface, IFNAMSIZ);
+-	ifr.ifr_ifrn.ifrn_name[IFNAMSIZ - 1] = 0;
++	strncpy(ifr.ifr_name, iface, IFNAMSIZ);
++	ifr.ifr_name[IFNAMSIZ - 1] = 0;
+ 
+ 	status = setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, (void *)&ifr, sizeof(ifr));
+ 
+@@ -210,8 +210,8 @@
+ 		struct ifreq ifr;
+ 
+ 		memset(&ifr, 0, sizeof(ifr));
+-		strncpy(ifr.ifr_ifrn.ifrn_name, iface, IFNAMSIZ);
+-		ifr.ifr_ifrn.ifrn_name[IFNAMSIZ - 1] = 0;
++		strncpy(ifr.ifr_name, iface, IFNAMSIZ);
++		ifr.ifr_name[IFNAMSIZ - 1] = 0;
+ 
+ 		if(setsockopt(nfd, SOL_SOCKET, SO_BINDTODEVICE, (void *)&ifr, sizeof(ifr))) {
+ 			closesocket(nfd);
+--- a/src/net_setup.c
++++ b/src/net_setup.c
+@@ -888,7 +888,7 @@
+ 	/* Ensure myport is numeric */
+ 
+ 	if(!atoi(myport)) {
+-		struct addrinfo *ai = str2addrinfo("localhost", myport, SOCK_DGRAM);
++		struct addrinfo *ai = str2addrinfo("127.0.0.1", myport, SOCK_DGRAM);
+ 		sockaddr_t sa;
+ 
+ 		if(!ai || !ai->ai_addr) {

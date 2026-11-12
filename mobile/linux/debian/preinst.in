@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+case "${1:-}" in
+    install|upgrade)
+        /usr/bin/python3 -B -I - preinst <<'QUANTWAY_MAINTAINER_CHECK'
+@MAINTAINER_CHECK@
+QUANTWAY_MAINTAINER_CHECK
+        ;;
+esac
+exit 0

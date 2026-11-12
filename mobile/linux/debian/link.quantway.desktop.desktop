@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Quantway
+Comment=VPN connection and account management
+Comment[ru]=VPN-подключение и управление аккаунтом
+Exec=/usr/bin/quantway
+TryExec=/usr/bin/quantway
+Icon=quantway
+Terminal=false
+Categories=Network;Security;
+StartupNotify=true

@@ -1,0 +1,109 @@
+--- a/proxy/tun/tun_darwin.go
++++ b/proxy/tun/tun_darwin.go
+@@ -41,10 +41,12 @@
+ )
+ 
+ type DarwinTun struct {
+-	tunFile *os.File
+-	options *Config
+-	tunFd   int
+-	ownsFd  bool // true for macOS (we created the fd), false for iOS (fd from system)
++	tunFile       *os.File
++	options       *Config
++	tunFd         int
++	ownsInterface bool // false when the caller owns interface setup and routes
++	closeOnce     sync.Once
++	closeErr      error
+ 
+ 	// Genuinely blocks Wait() until tunFd is readable, instead of the
+ 	// previous procyield-only busy-spin (dispatchLoop in
+@@ -160,16 +162,24 @@
+ 			return nil, err
+ 		}
+ 
++		// os.File always owns the descriptor passed to NewFile, including its
++		// GC cleanup. Give it a private CLOEXEC duplicate instead of wrapping
++		// the caller's descriptor, which may outlive this tunnel instance.
++		fd, err = unix.FcntlInt(uintptr(fd), unix.F_DUPFD_CLOEXEC, 0)
++		if err != nil {
++			return nil, err
++		}
+ 		if err = unix.SetNonblock(fd, true); err != nil {
++			_ = unix.Close(fd)
+ 			return nil, err
+ 		}
+ 
+ 		return &DarwinTun{
+-			tunFile: os.NewFile(uintptr(fd), "utun"),
+-			options: options,
+-			tunFd:   fd,
+-			ownsFd:  false,
+-			waitKq:  newWaitKqueue(fd),
++			tunFile:       os.NewFile(uintptr(fd), "utun"),
++			options:       options,
++			tunFd:         fd,
++			ownsInterface: false,
++			waitKq:        newWaitKqueue(fd),
+ 		}, nil
+ 	}
+ 
+@@ -192,17 +202,17 @@
+ 	}
+ 
+ 	return &DarwinTun{
+-		tunFile: tunFile,
+-		options: options,
+-		tunFd:   int(tunFile.Fd()),
+-		ownsFd:  true,
+-		waitKq:  newWaitKqueue(int(tunFile.Fd())),
+-		gateway: gateway,
++		tunFile:       tunFile,
++		options:       options,
++		tunFd:         int(tunFile.Fd()),
++		ownsInterface: true,
++		waitKq:        newWaitKqueue(int(tunFile.Fd())),
++		gateway:       gateway,
+ 	}, nil
+ }
+ 
+ func (t *DarwinTun) Start() error {
+-	if !t.ownsFd {
++	if !t.ownsInterface {
+ 		return nil
+ 	}
+ 
+@@ -223,20 +233,21 @@
+ }
+ 
+ func (t *DarwinTun) Close() error {
+-	t.routeMonitorOnce.Do(func() {
+-		if t.routeMonitor != nil {
+-			_ = t.routeMonitor.Close()
+-		}
++	t.closeOnce.Do(func() {
++		t.routeMonitorOnce.Do(func() {
++			if t.routeMonitor != nil {
++				_ = t.routeMonitor.Close()
++			}
++		})
++		if t.waitKq != nil {
++			t.waitKq.close()
++		}
++		// Both creation paths own tunFile: external interface mode owns a
++		// duplicate only. Close it now, not at a later GC that can follow FD
++		// reuse in the next assignment. Interface routing remains separate.
++		t.closeErr = xerrors.Combine(t.unsetSystemRoutes(), t.tunFile.Close())
+ 	})
+-	if t.waitKq != nil {
+-		t.waitKq.close()
+-	}
+-	routeErr := t.unsetSystemRoutes()
+-	if t.ownsFd {
+-		return xerrors.Combine(routeErr, t.tunFile.Close())
+-	}
+-	// iOS: don't close the fd, it's owned by NetworkExtension
+-	return routeErr
++	return t.closeErr
+ }
+ 
+ func (t *DarwinTun) monitorRouteChanges() {

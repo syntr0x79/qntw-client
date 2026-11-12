@@ -1,0 +1,182 @@
+/* Quantway desktop: ink surfaces, silver primary action, turquoise status.
+ * Scoped to the application workspace so native window controls stay native. */
+.quantway { background: #101820; color: #EFF4F6; }
+.workspace { font-family: 'Ubuntu', 'Cantarell', sans-serif; font-size: 1em; color: #EFF4F6; }
+.workspace label { color: #EFF4F6; }
+.workspace .muted { color: #A9B9C4; }
+.workspace .caption { color: #A9B9C4; font-size: 0.86em; }
+.workspace .brand { font-size: 1.3em; font-weight: 700; }
+.workspace .sidebar { background: #131F28; border-right: 1px solid #405462; }
+.workspace .page-title { font-size: 1.5em; font-weight: 700; }
+.workspace .section-title { font-size: 1.1em; font-weight: 700; }
+.workspace .connection-title { font-size: 1.25em; font-weight: 700; }
+.workspace .route-name { font-size: 1.08em; font-weight: 700; }
+.workspace .metric-value { font-size: 1.1em; font-weight: 600; }
+.workspace .panel { background: #1B2832; border-radius: 10px; padding: 14px; }
+.workspace .quiet-panel { background: #17242E; border: 1px solid #405462; border-radius: 8px; padding: 12px; }
+.workspace .connection-symbol { color: #9CCBDD; background: #233E4D; border-radius: 7px; padding: 6px; }
+.workspace .state-pill { color: #A9B9C4; background: #26353e; border-radius: 12px; padding: 5px 10px; font-size: 0.86em; }
+.workspace .state-pill.connected { color: #baf1db; background: #23413b; }
+.workspace .state-pill.checking { color: #c5e5ff; background: #243e53; }
+.workspace .state-pill.danger { color: #ffd1c9; background: #4b3032; }
+.workspace button { background: #243744; color: #f2f7f8; border: 1px solid #658294; border-radius: 6px; box-shadow: none; padding: 4px 10px; min-height: 24px; }
+.workspace button label { color: inherit; }
+.workspace button:hover { background: #304A5B; }
+.workspace button:active { background: #3B5B6E; }
+.workspace button:disabled { background: #25313a; border-color: #52616a; color: #a4b0b7; }
+.workspace button:disabled label { color: #a4b0b7; }
+.workspace button.primary { background: #9CCBDD; color: #11212B; border: 1px solid #9CCBDD; font-weight: 700; }
+.workspace button.primary label { color: #11212B; }
+.workspace button.primary:hover { background: #BDE1EE; }
+.workspace button.primary:disabled { background: #46565f; border-color: #62727b; }
+.workspace button.primary:disabled label { color: #d0dadd; }
+.workspace button.connection-action { border-radius: 7px; padding: 6px 16px; min-height: 26px; }
+.workspace button.icon-action { min-width: 22px; min-height: 22px; padding: 6px; }
+.workspace .connection-modes { background: transparent; padding: 0; }
+.workspace button.mode-option { background: #12212B; border-color: #658294; border-radius: 0; }
+.workspace button.mode-option:first-child { border-radius: 6px 0 0 6px; }
+.workspace button.mode-option:last-child { border-radius: 0 6px 6px 0; }
+.workspace button.mode-option:checked { background: #345565; border-color: #8197a3; color: #ffffff; }
+.workspace button.mode-option:checked label { color: #ffffff; }
+.workspace .mesh-path { font-size: 1em; font-weight: 600; }
+.workspace .mesh-nodes { background: #17242E; border-radius: 10px; }
+.workspace .mesh-node { padding: 7px 12px; border-bottom: 1px solid #405462; }
+.workspace .mesh-node:last-child { border-bottom: 0; }
+.workspace button.flat { background: transparent; border-color: transparent; }
+.workspace button.nav-button { background: transparent; border-color: transparent; padding: 6px 10px; }
+.workspace button.nav-button label, .workspace button.nav-button image { color: #A9B9C4; }
+.workspace button.nav-button:checked { background: #2c414c; }
+.workspace button.nav-button:checked label, .workspace button.nav-button:checked image { color: #ffffff; }
+.workspace button.alternative { background: transparent; border-color: #8197a3; padding: 6px 10px; }
+.workspace button.alternative:hover { background: #263d48; }
+.workspace button:focus-visible, .workspace entry:focus-visible, .workspace row:focus-visible, .workspace dropdown:focus-visible { outline: 2px solid #B2E3FA; outline-offset: 2px; }
+.workspace entry, .workspace spinbutton, .workspace dropdown { background: #12212B; color: #f3f7f8; border: 1px solid #658294; border-radius: 6px; min-height: 32px; }
+.workspace entry { padding: 0 10px; }
+.workspace entry text { color: #f3f7f8; }
+.workspace entry > text > placeholder { color: #a9b8c0; }
+.workspace dropdown button { border: 0; background: transparent; }
+.workspace list.route-list { background: transparent; color: #EFF4F6; }
+.workspace .route-list row { background: #1B2832; color: #EFF4F6; border-bottom: 1px solid #3d515d; padding: 0; }
+.workspace .route-list row:first-child { border-radius: 10px 10px 0 0; }
+.workspace .route-list row:last-child { border-bottom: 0; border-radius: 0 0 10px 10px; }
+.workspace .route-list row:hover { background: #293f4b; }
+.workspace .route-list row:selected { background: #345565; }
+.workspace .route-list .route-label { color: #EFF4F6; font-weight: 600; }
+.workspace .route-list .route-meta { color: #bfced5; font-size: 0.86em; }
+.workspace .route-list .latency { color: #b7ead8; font-weight: 600; }
+.workspace .selected-mark { color: #b7ead8; font-size: 0.86em; }
+.workspace .notice { border-left: 3px solid #85bcdf; background: #1d303c; border-radius: 7px; padding: 10px 12px; min-height: 3em; }
+.workspace .notice label { color: #dbeaf1; }
+.workspace .notice.error { border-color: #ffb6a9; background: #3c2b2c; }
+.workspace .notice.error label { color: #ffe3dd; }
+.workspace .progress-line { background: #223845; border-radius: 9px; padding: 10px 12px; }
+.workspace .progress-line label, .workspace .progress-line spinner { color: #cce8f7; }
+.workspace progressbar text { color: #cce8f7; }
+.workspace progressbar trough { background: #354c58; min-height: 4px; border-radius: 2px; }
+.workspace progressbar progress { background: #83d9cc; min-height: 4px; border-radius: 2px; }
+.workspace separator { background: #3b4f59; min-height: 1px; }
+/* GTK4's expander-widget owns box > title; "expander" is only its arrow.
+ * Header/body spacing is measured with widget margins in disclosure(). */
+.workspace expander-widget.disclosure > box > title { border-radius: 6px; }
+.workspace expander-widget.disclosure > box > title:hover { background: #17242E; }
+.workspace expander-widget.disclosure > box > title:focus-visible { outline: 2px solid #B2E3FA; outline-offset: 2px; }
+.workspace .disclosure-title { font-weight: 600; }
+
+/* Cabinet: grouped navigation, compact ledgers and a clear payment summary. */
+.workspace .subscription-summary { padding: 0; }
+.workspace .account-stats { border-left: 1px solid #3b4f59; padding-left: 20px; }
+.workspace .account-stats.stacked { border-left: 0; border-top: 1px solid #3b4f59; padding-left: 0; padding-top: 14px; }
+.workspace .nav-group { background: #17242E; border: 1px solid #405462; border-radius: 12px; padding: 4px; }
+.workspace button.nav-row { background: transparent; border-color: transparent; border-radius: 6px; padding: 6px 10px; min-height: 24px; }
+.workspace button.nav-row:hover { background: #263d48; border-color: #658294; }
+.workspace .nav-icon { color: #80d9c9; padding-right: 4px; }
+.workspace .nav-caption { color: #A9B9C4; font-size: 0.86em; }
+.workspace .nav-chevron { color: #A9B9C4; }
+.workspace .data-list { background: transparent; }
+.workspace .data-row { background: #17242E; border: 1px solid #405462; border-radius: 7px; padding: 8px 10px; }
+.workspace .row-title { font-weight: 600; }
+.workspace .row-value { font-weight: 700; color: #EFF4F6; }
+.workspace .invoice-amount { font-size: 2em; font-weight: 700; }
+.workspace .token-code { font-size: 1.35em; font-weight: 600; }
+.workspace .status-pill { color: #c5d2d8; background: #2b3d47; border-radius: 10px; padding: 4px 9px; font-size: 0.86em; }
+.workspace .status-pill.success { color: #baf1db; background: #23413b; }
+.workspace .status-pill.warning { color: #ffe0aa; background: #493c2b; }
+.workspace .status-pill.danger { color: #ffd1c9; background: #4b3032; }
+.workspace .empty-state { color: #A9B9C4; padding: 22px 14px; }
+.workspace .inline-error { color: #ffd1c9; }
+.workspace button.danger-action { background: #713c40; border-color: #d8999b; color: #fff0ee; }
+.workspace button.danger-action label { color: #fff0ee; }
+.workspace button.danger-action:hover { background: #87484d; }
+
+/* Device statistics stay quiet; the name and actual access state lead each row. */
+.workspace .header-stats { background: #17242E; border: 1px solid #405462; border-radius: 10px; padding: 12px; }
+.workspace .stat-value { color: #EFF4F6; font-size: 1.25em; font-weight: 700; }
+.workspace .stat-caption { color: #A9B9C4; font-size: 0.86em; }
+.workspace .device-row { padding: 0; }
+.workspace .device-status { color: #A9B9C4; font-size: 0.86em; }
+.workspace .device-meta { color: #A9B9C4; font-size: 0.86em; }
+.workspace .device-current { color: #baf1db; background: #23413b; border-radius: 8px; padding: 3px 7px; font-size: 0.8em; }
+.workspace .device-traffic { color: #d4e0e6; font-size: 0.86em; }
+.workspace .dialog-body { padding: 0; }
+.workspace .dialog-heading { color: #EFF4F6; font-size: 1.25em; font-weight: 700; }
+.workspace .qr-panel { background: #ffffff; border-radius: 10px; padding: 12px; }
+
+/* Support is a native conversation with its composer outside the scroll area. */
+.workspace .chat-page { background: #101820; }
+.workspace .chat-header { padding-bottom: 12px; }
+.workspace .chat-scroll { background: #101820; }
+.workspace .chat-bubble { background: #1B2832; border: 1px solid #3b505b; border-radius: 14px 14px 14px 4px; padding: 10px 14px; }
+.workspace .chat-bubble.from-user { background: #224740; border-color: #527d70; border-radius: 14px 14px 4px 14px; }
+.workspace .chat-author { color: #80d9c9; font-size: 0.86em; font-weight: 600; }
+.workspace .chat-meta { color: #bdcdd4; font-size: 0.8em; }
+.workspace .support-composer { padding-top: 12px; }
+.workspace .chat-editor { background: #17242E; color: #EFF4F6; border: 1px solid #658294; border-radius: 18px; }
+.workspace .chat-editor textview, .workspace .chat-editor text { background: transparent; color: #EFF4F6; }
+.workspace .chat-placeholder { color: #A9B9C4; }
+.workspace .composer-actions button { border-radius: 18px; min-width: 22px; min-height: 22px; padding: 6px; }
+.workspace .chat-editor:focus-visible, .workspace .chat-editor:focus-within { outline: 2px solid #B2E3FA; outline-offset: 2px; }
+.workspace .chat-unread { color: #c5e5ff; }
+
+/* A connection workspace with one persistent action and quiet configuration. */
+.workspace .connection-card { padding: 14px; border: 1px solid #405462; border-radius: 10px; }
+.workspace .connection-footer { background: #101820; padding-top: 12px; }
+.workspace .source-context { padding: 0 2px; }
+.workspace .source-context menubutton { min-height: 34px; }
+.workspace .source-context menubutton > button { background: transparent; border-color: transparent; }
+.workspace button.route-choice { background: #142530; border-color: #658294; padding: 8px 10px; }
+.workspace button.route-choice:hover { background: #263F50; }
+.workspace button.secondary-link { background: transparent; border-color: transparent; color: #B4D9E9; }
+.workspace button.secondary-link:hover { background: #253B49; }
+.workspace button.nav-button { border-left: 3px solid transparent; border-radius: 8px; }
+.workspace button.nav-button:checked { border-left-color: #9CCBDD; background: #263E4D; }
+.workspace button.mode-option:checked { background: #304F61; border-color: #9CCBDD; }
+.workspace .notice { min-height: 0; padding: 8px 10px; }
+.workspace .notice.warning { border-color: #E7C48E; background: #3F3527; }
+.workspace .notice.warning label { color: #F6E5C9; }
+.workspace .route-preview { padding: 12px 0 0; border-top: 1px solid #405462; }
+.workspace .route-row { border: 1px solid #405462; border-radius: 9px; margin-bottom: 8px; }
+.workspace .route-row:selected { border-color: #9CCBDD; }
+.workspace .route-list row.route-row { border-radius: 9px; }
+.workspace .selected-mark { color: #C4E5F3; }
+.workspace checkbutton { min-height: 30px; padding-top: 2px; padding-bottom: 2px; }
+.workspace .route-technical { color: #A9B9C4; font-size: 0.86em; }
+.workspace .route-state { color: #C2D2DC; font-size: 0.86em; }
+.workspace .route-state.success { color: #B8E7D4; }
+.workspace .source-row { padding: 10px; border: 1px solid #405462; border-radius: 8px; }
+.workspace .source-selected { color: #C4E5F3; font-size: 0.86em; }
+.workspace .source-choice { border-color: #658294; }
+.workspace .device-ledger, .ledger { background: #17242E; border: 1px solid #405462; border-radius: 10px; padding: 12px 14px; }
+.workspace .device-ledger-item, .ledger-row { padding: 8px 0; border-bottom: 1px solid #405462; }
+.workspace .ledger-row:last-child { border-bottom: 0; }
+.workspace button.device-connection-action { background: #243744; border-color: #658294; color: #EFF4F6; }
+.workspace button.device-connection-action label { color: inherit; }
+.workspace .section-header { padding-bottom: 4px; }
+.workspace .section-breadcrumb { color: #A9B9C4; font-size: 0.86em; }
+.workspace .invoice-summary, .referral-card { background: #1B2832; border-radius: 10px; padding: 14px; }
+.workspace .stat-strip { padding: 12px 0; }
+.workspace .account-metrics { padding: 8px; background: #17242E; border-radius: 8px; }
+.workspace .metric-cell { padding: 2px; }
+.workspace .chat-empty { padding: 24px 12px; }
+.workspace .chat-thread { padding: 0 2px; }
+.workspace .chat-message-content { color: #EFF4F6; }
+.workspace .chat-composer-hint { color: #A9B9C4; font-size: 0.86em; }

@@ -14,12 +14,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/syntr0x79/qntw-backend/internal/awgprobe"
-	"github.com/syntr0x79/qntw-backend/internal/mobileprobe/wire"
+	"github.com/syntr0x79/qntw-client/internal/awgprobe"
+	"github.com/syntr0x79/qntw-client/internal/mobileprobe/wire"
 	"github.com/xtls/xray-core/common/platform"
 	"github.com/xtls/xray-core/core"
 	xout "github.com/xtls/xray-core/features/outbound"
-	"golang.org/x/sys/unix"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -38,7 +37,7 @@ type xrayTunnel struct {
 func (t *xrayTunnel) Close() error {
 	t.sockets.close()
 	err := t.core.Close()
-	unix.Close(t.fd)
+	closeTunnelDescriptor(t.fd)
 	return err
 }
 
@@ -62,7 +61,7 @@ func StartVPN(fd int, jobJSON string, network Network) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	copyFD, err := unix.Dup(fd)
+	copyFD, err := duplicateTunnelDescriptor(fd)
 	if err != nil {
 		return err
 	}
@@ -72,7 +71,7 @@ func StartVPN(fd int, jobJSON string, network Network) error {
 	success := false
 	defer func() {
 		if !success {
-			unix.Close(copyFD)
+			closeTunnelDescriptor(copyFD)
 			state.Lock()
 			state.tunnelNetwork = nil
 			state.Unlock()
@@ -139,7 +138,11 @@ func StartVPN(fd int, jobJSON string, network Network) error {
 		}
 		outbound.Tag = "vpn"
 		os.Setenv(platform.TunFdKey, strconv.Itoa(copyFD))
-		config, err := core.LoadConfig("json", strings.NewReader(tunnelDocument(policy)))
+		name, err := tunName(copyFD)
+		if err != nil {
+			return err
+		}
+		config, err := core.LoadConfig("json", strings.NewReader(tunnelDocument(policy, name)))
 		if err != nil {
 			return err
 		}
@@ -196,7 +199,7 @@ func StartVPN(fd int, jobJSON string, network Network) error {
 		if err != nil {
 			return err
 		}
-		unix.Close(copyFD)
+		closeTunnelDescriptor(copyFD)
 		vpn.closer = closer
 	default:
 		return errors.New("unsupported VPN engine")

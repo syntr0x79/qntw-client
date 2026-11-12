@@ -5,7 +5,6 @@ package engine
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,9 +21,9 @@ import (
 	"github.com/xtls/xray-core/transport/internet"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/syntr0x79/qntw-backend/internal/awgprobe"
-	"github.com/syntr0x79/qntw-backend/internal/mobileprobe/wire"
-	"github.com/syntr0x79/qntw-backend/internal/xrayfetch"
+	"github.com/syntr0x79/qntw-client/internal/awgprobe"
+	"github.com/syntr0x79/qntw-client/internal/mobileprobe/wire"
+	"github.com/syntr0x79/qntw-client/internal/xrayfetch"
 )
 
 // Network is implemented by Android. PrepareSocket must fail if the selected
@@ -237,17 +236,7 @@ func ProbeOnNetwork(jobJSON string, controlURL string, timeoutMS int, network Ne
 	case unprobeable:
 		result.Outcome, result.Reason = "unprobeable", "configuration_or_network"
 	case err != nil:
-		result.Outcome, result.Reason = "fail", "request_failed"
-		var certificateError *tls.CertificateVerificationError
-		if errors.As(err, &certificateError) {
-			result.Reason = "tls_verification_failed"
-		}
-		if errors.Is(err, awgprobe.ErrHandshake) {
-			result.Reason = "handshake_timeout"
-		}
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			result.Reason = "timeout"
-		}
+		result.Outcome, result.Reason = "fail", probeRequestReason(ctx, err, owner)
 	}
 	data, _ := json.Marshal(result)
 	return string(data), nil

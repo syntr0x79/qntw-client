@@ -1,0 +1,18 @@
+diff --git a/src/net_packet.c b/src/net_packet.c
+index c2132b8..d9594b4 100644
+--- a/src/net_packet.c
++++ b/src/net_packet.c
+@@ -545,9 +545,10 @@ bool receive_tcppacket_sptps(connection_t *c, const char *data, size_t len) {
+ 	/* If we're not the final recipient, relay the packet. */
+ 
+ 	if(to != myself) {
+-		if(to->status.validkey) {
+-			send_sptps_data(to, from, 0, data, len);
+-		}
++		/* This record is already end-to-end encrypted by its origin. A
++		 * transit router does not need its own data session to the recipient
++		 * in order to forward it, especially over TCP-only meta links. */
++		send_sptps_data(to, from, 0, data, len);
+ 
+ 		try_tx(to, true);
+ 		return true;

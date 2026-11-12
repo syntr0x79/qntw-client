@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "gdk_pixbuf_version": "2.44.8",
+  "runtime_lock_sha256": "d22d2c4242e2fd8015034046f2162657df0d8fbdb9e97de5146f650da20a9df5",
+  "metadata_origin": {
+    "description": "Actual Windows11ARM64 query output from the locked bundled GdkPixbuf runtime; records are format metadata shared by identical-version architectures, with per-architecture DLL hashes.",
+    "source_sha256": "93f5473d15ca68d7f35818971a69b9b27877d310b62bdc1de8c8979f40c7c4b6"
+  },
+  "modules": [
+    {
+      "file": "libpixbufloader-ani.dll",
+      "record": "\"ani\" 4 \"gdk-pixbuf\" \"Windows animated cursor\" \"LGPL\"\n\"application/x-navi-animation\" \"\"\n\"ani\" \"\"\n\"RIFF    ACON\" \"    xxxx    \" 100"
+    },
+    {
+      "file": "libpixbufloader-bmp.dll",
+      "record": "\"bmp\" 5 \"gdk-pixbuf\" \"BMP\" \"LGPL\"\n\"image/bmp\" \"image/x-bmp\" \"image/x-MS-bmp\" \"\"\n\"bmp\" \"\"\n\"BM\" \"\" 100"
+    },
+    {
+      "file": "libpixbufloader-gif.dll",
+      "record": "\"gif\" 4 \"gdk-pixbuf\" \"GIF\" \"LGPL\"\n\"image/gif\" \"\"\n\"gif\" \"\"\n\"GIF8\" \"\" 100"
+    },
+    {
+      "file": "libpixbufloader-icns.dll",
+      "record": "\"icns\" 4 \"gdk-pixbuf\" \"MacOS X icon\" \"GPL\"\n\"image/x-icns\" \"\"\n\"icns\" \"\"\n\"icns\" \"\" 100"
+    },
+    {
+      "file": "libpixbufloader-ico.dll",
+      "record": "\"ico\" 5 \"gdk-pixbuf\" \"Windows icon\" \"LGPL\"\n\"image/x-icon\" \"image/x-ico\" \"image/x-win-bitmap\" \"image/vnd.microsoft.icon\" \"application/ico\" \"image/ico\" \"image/icon\" \"text/ico\" \"\"\n\"ico\" \"cur\" \"\"\n\"  \\001   \" \"zz znz\" 100\n\"  \\002   \" \"zz znz\" 100"
+    },
+    {
+      "file": "libpixbufloader-jpeg.dll",
+      "record": "\"jpeg\" 5 \"gdk-pixbuf\" \"JPEG\" \"LGPL\"\n\"image/jpeg\" \"\"\n\"jpeg\" \"jpe\" \"jpg\" \"\"\n\"\\377\\330\" \"\" 100"
+    },
+    {
+      "file": "libpixbufloader-png.dll",
+      "record": "\"png\" 5 \"gdk-pixbuf\" \"PNG\" \"LGPL\"\n\"image/png\" \"\"\n\"png\" \"\"\n\"\\211PNG\\r\\n\\032\\n\" \"\" 100"
+    },
+    {
+      "file": "libpixbufloader-pnm.dll",
+      "record": "\"pnm\" 4 \"gdk-pixbuf\" \"PNM/PBM/PGM/PPM\" \"LGPL\"\n\"image/x-portable-anymap\" \"image/x-portable-bitmap\" \"image/x-portable-graymap\" \"image/x-portable-pixmap\" \"\"\n\"pnm\" \"pbm\" \"pgm\" \"ppm\" \"\"\n\"P1\" \"\" 100\n\"P2\" \"\" 100\n\"P3\" \"\" 100\n\"P4\" \"\" 100\n\"P5\" \"\" 100\n\"P6\" \"\" 100"
+    },
+    {
+      "file": "libpixbufloader-qtif.dll",
+      "record": "\"qtif\" 4 \"gdk-pixbuf\" \"QuickTime\" \"LGPL\"\n\"image/x-quicktime\" \"image/qtif\" \"\"\n\"qtif\" \"qif\" \"\"\n\"abcdidsc\" \"xxxx    \" 100\n\"abcdidat\" \"xxxx    \" 100"
+    },
+    {
+      "file": "libpixbufloader-tga.dll",
+      "record": "\"tga\" 4 \"gdk-pixbuf\" \"Targa\" \"LGPL\"\n\"image/x-tga\" \"\"\n\"tga\" \"targa\" \"\"\n\" \\001\\001\" \"x  \" 100\n\" \\001\\t\" \"x  \" 100\n\"  \\002\" \"xz \" 99\n\"  \\003\" \"xz \" 100\n\"  \\n\" \"xz \" 100\n\"  \\v\" \"xz \" 100"
+    },
+    {
+      "file": "libpixbufloader-tiff.dll",
+      "record": "\"tiff\" 5 \"gdk-pixbuf\" \"TIFF\" \"LGPL\"\n\"image/tiff\" \"\"\n\"tiff\" \"tif\" \"\"\n\"MM *\" \"  z \" 100\n\"II* \" \"   z\" 100\n\"II* \\020   CR\\002 \" \"   z zzz   z\" 0"
+    },
+    {
+      "file": "libpixbufloader-xbm.dll",
+      "record": "\"xbm\" 4 \"gdk-pixbuf\" \"XBM\" \"LGPL\"\n\"image/x-xbitmap\" \"\"\n\"xbm\" \"\"\n\"#define \" \"\" 100\n\"/*\" \"\" 50"
+    },
+    {
+      "file": "libpixbufloader-xpm.dll",
+      "record": "\"legacy-xpm\" 4 \"gdk-pixbuf\" \"XPM\" \"LGPL\"\n\"image/x-xpixmap\" \"\"\n\"\"\n\"/* XPM */\" \"\" 100"
+    },
+    {
+      "file": "pixbufloader_svg.dll",
+      "record": "\"svg\" 6 \"gdk-pixbuf\" \"Scalable Vector Graphics\" \"LGPL\"\n\"image/svg+xml\" \"image/svg\" \"image/svg-xml\" \"image/vnd.adobe.svg+xml\" \"text/xml-svg\" \"image/svg+xml-compressed\" \"\"\n\"svg\" \"svgz\" \"svg.gz\" \"\"\n\" <svg\" \"*    \" 100\n\" <!DOCTYPE svg\" \"*             \" 100"
+    }
+  ],
+  "architectures": {
+    "amd64": {
+      "module_sha256": {
+        "libpixbufloader-ani.dll": "111dc6c060fd1c0f1aee110dc7d9e33cb8c5d644d162e0363b52ebbf3cf52491",
+        "libpixbufloader-bmp.dll": "9d57e97b4ab6b2c10dc2647ca64e8b38d57804afdc6e9359f6d75f84b8b65ee4",
+        "libpixbufloader-gif.dll": "55843b59320c13ef7c3ba803b518e1858a0602f328288974d303ed90a1d9d1cc",
+        "libpixbufloader-icns.dll": "10ccb26821af4665876a002ea38319ffaf7bd0e57d23892841a2e560477c2723",
+        "libpixbufloader-ico.dll": "1b5cf79894ee563212d50397f821d170ea338083a09a2521a8c59407e576ce5d",
+        "libpixbufloader-jpeg.dll": "d7a201839d6db685afc3400b7397de836809683da8370f2a799385658bbc7c7f",
+        "libpixbufloader-png.dll": "c5a862e9d877734ece3e9c13ca0fc71bae0e6314ce8cff5365236ef286424223",
+        "libpixbufloader-pnm.dll": "61a4f76158a839234f23dca0a2d42a0195e745d9950f47655086b29e59af76d1",
+        "libpixbufloader-qtif.dll": "b226635b915faa620f40e6fba6db87448efa351de7f4ee9f42b2681af1bc822d",
+        "libpixbufloader-tga.dll": "e264f90c81bdcea0acbed65df89e482c7d270f905a6e1f69bd001634cf9008d7",
+        "libpixbufloader-tiff.dll": "efb89307a5d475fd62174b23f9f34dec09a68dfd16bbb2588eafa652d4c8e1f8",
+        "libpixbufloader-xbm.dll": "431c936fde4a309547e38abd44f37c4dea2367ff468aaed6b4a9796752fcbcef",
+        "libpixbufloader-xpm.dll": "d49ab15a0dc43b6e6e14ee9f437497e49e48c176ac5867b335a39cb4ecfc5ffd",
+        "pixbufloader_svg.dll": "1fa2aa3e1aa5e9f9dd190cbbc948302731016d0e2d026bab7de0a4c7b7653b7d"
+      }
+    },
+    "arm64": {
+      "module_sha256": {
+        "libpixbufloader-ani.dll": "bc099d7eda55714f3ad2f53c1fcfc2f2e39b228151424df973b0372ef3a7f321",
+        "libpixbufloader-bmp.dll": "fad4a351e81e1fe5f3c2e04a7c5604c23382895ef4e2b086350d47ba33b2e563",
+        "libpixbufloader-gif.dll": "c510efc993002286aa40414073553879d998594a1b962b2c787f165a7b07ebde",
+        "libpixbufloader-icns.dll": "2e4819ad2a8986125f841db69b02f0c792bede9fec72e4a4b99724a4a93169ed",
+        "libpixbufloader-ico.dll": "0bb9810d599e2ef2389d2f73ab954863411a488bc8cb1a4fda9685bbc51961dc",
+        "libpixbufloader-jpeg.dll": "e2948f27cc0c591db380466a0de1f5895d174ee16a3570405f7e0e2375d581ff",
+        "libpixbufloader-png.dll": "c9af689e560bf7de417207bb1617bf221486b572176e39c2eec7235cbfe742d8",
+        "libpixbufloader-pnm.dll": "d43d728de9613a832dd582347867d3dfd5402a89b8701add970793ea8883dd7b",
+        "libpixbufloader-qtif.dll": "b0ce806e998bea89294f2763bd16cd902f96bad615a623688fdf04c6c5edb1fb",
+        "libpixbufloader-tga.dll": "7b82c08fc409f22b67511de92ad543ac366ab89f796884b14eca3a51330a5ed2",
+        "libpixbufloader-tiff.dll": "7b231616c79e4ad58a951c8ee83fc841a61dce33ea7b4136229ae402594b0443",
+        "libpixbufloader-xbm.dll": "81ac0891ed16ca125390a2a88c89e2eafd4e36184cb9d213f003b4cda7b7049e",
+        "libpixbufloader-xpm.dll": "16f5d900cceb897b255a2503b06fc2a589fba20fc46b02cf9cf95f43aec441bb",
+        "pixbufloader_svg.dll": "da07732cf656c46d791316063024c5dfed84ed6860f8b797937b5b9cc745393f"
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+# Tiny context from prepare-tinc-fork.sh; never send app credentials to Docker.
+FROM alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc AS build
+ARG TINC_MESON_VERSION=1.9.1
+ARG TINC_LINUX_NINJA_PACKAGE=ninja-build=1.12.1-r0
+RUN apk add --no-cache build-base python3 py3-pip linux-headers "$TINC_LINUX_NINJA_PACKAGE" \
+ && python3 -m venv /tools && /tools/bin/pip install --no-cache-dir "meson==$TINC_MESON_VERSION"
+ENV PATH=/tools/bin:/usr/lib/ninja-build/bin:$PATH
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH
+COPY source/ /src/
+COPY BUILD-INFO.txt tinc-source.tar.gz /provenance/
+WORKDIR /src
+RUN CFLAGS='-O2 -ffile-prefix-map=/src=/quantway-client-tinc' /tools/bin/meson setup /build /src \
+      --buildtype=release --wrap-mode=nofallback -Dstatic=enabled -Dcrypto=nolegacy \
+      -Dsocket_guard=true -Dclient_hooks=false -Dudp_batch_size=1 -Dudp_offload=false \
+      -Ddocs=disabled -Dsystemd=disabled -Dlzo=disabled -Dlz4=disabled -Dzlib=disabled \
+      -Dreadline=disabled -Dcurses=disabled -Dvde=disabled -Dminiupnpc=disabled \
+ && /tools/bin/meson compile -C /build src/tinc:executable src/tincd:executable \
+ && strip /build/src/tinc /build/src/tincd \
+ && mkdir /out && cp /build/src/tinc /build/src/tincd COPYING /out/ \
+ && cp /provenance/BUILD-INFO.txt /provenance/tinc-source.tar.gz /out/ \
+ && { printf 'profile=supervised-client\nsocket_guard=true\nclient_hooks=false\ncrypto=nolegacy\nudp_batch_size=1\nudp_offload=false\n'; \
+      printf 'meson_version='; /tools/bin/meson --version; \
+      printf 'ninja_version='; ninja --version; \
+      printf 'compiler='; cc --version | head -1; \
+      printf 'ninja_package=%s\n' "$TINC_LINUX_NINJA_PACKAGE"; \
+      printf 'cflags=-O2 -ffile-prefix-map=/src=/quantway-client-tinc\n'; \
+    } >> /out/BUILD-INFO.txt
+FROM scratch AS artifacts
+COPY --from=build /out/ /

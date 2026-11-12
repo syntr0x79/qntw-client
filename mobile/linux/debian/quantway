@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+QUANTWAY_HELPER=/usr/libexec/quantway/quantway-helper
+export QUANTWAY_HELPER
+exec /usr/bin/python3 -B -E -s /usr/share/quantway/mobile/linux/ui/quantway.py "$@"

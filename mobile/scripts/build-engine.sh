@@ -8,6 +8,7 @@ mobile_version=v0.0.0-20261011034528-197770444867
 go install "golang.org/x/mobile/cmd/gomobile@$mobile_version"
 go install "golang.org/x/mobile/cmd/gobind@$mobile_version"
 cd "$mobile_dir"
+mkdir -p android/app/libs
 gomobile init
 # anet's Android interface cache uses linkname to Go net caches. The pinned
 # Go 1.27 and x/net cache layouts match; recheck on toolchain upgrades.
