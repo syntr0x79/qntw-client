@@ -64,5 +64,5 @@ jobs:
         run: |
           cd mobile/linux/ui
           for test in test_*.py; do
-            xvfb-run -a dbus-run-session -- /usr/bin/python3 "$test"
+            xvfb-run -a dbus-run-session -- /usr/bin/python3 run_fixture.py "$test"
           done
