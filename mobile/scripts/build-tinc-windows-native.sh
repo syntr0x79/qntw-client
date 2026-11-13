@@ -27,7 +27,11 @@ grep -q '1.1pre18-quantway-windows2' configure.ac
 sed -i 's/#define WINVER WindowsXP/#define WINVER 0x0a00\n#ifndef _WIN32_WINNT\n#define _WIN32_WINNT 0x0a00\n#endif/' src/have.h
 sed -i 's/IP_MTU, &ip_mtu, &ip_mtu_len/IP_MTU, (char *)\&ip_mtu, \&ip_mtu_len/' src/net_packet.c
 autoreconf -fsi
-ac_cv_func_nanosleep=yes CC=$target-clang ./configure --host=$target --disable-legacy-protocol --disable-lzo --disable-zlib --disable-readline --disable-curses --disable-manpages --without-systemd CFLAGS="-O2 -DQUANTWAY_WINDOWS_CLIENT=1" LDFLAGS="-static" LIBS="-lwinpthread"
+# MSYS2 rewrites POSIX paths in arguments to native programs, which would bake
+# the build machine's MSYS2 location (and user name) into tincd's default
+# directories. Keep the -D...DIR defines verbatim, as in the Docker build.
+export MSYS2_ARG_CONV_EXCL='-DCONFDIR=;-DRUNSTATEDIR=;-DLOCALSTATEDIR=;-DSBINDIR='
+ac_cv_func_nanosleep=yes CC=$target-clang ./configure --host=$target --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-legacy-protocol --disable-lzo --disable-zlib --disable-readline --disable-curses --disable-manpages --without-systemd CFLAGS="-O2 -DQUANTWAY_WINDOWS_CLIENT=1" LDFLAGS="-static" LIBS="-lwinpthread"
 make -C src -j"$(nproc)" tincd.exe tinc.exe
 $target-strip src/tincd.exe src/tinc.exe
 cp src/tincd.exe src/tinc.exe COPYING "$output/"
