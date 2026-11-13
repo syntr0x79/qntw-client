@@ -17,7 +17,7 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 Var QctLogHandle
 Var QctLogPath
 !define MUI_ABORTWARNING
-!define MUI_FINISHPAGE_TEXT "Quantway установлен. Откройте его из меню Пуск. При подключении VPN Windows запросит разрешение администратора."
+!define MUI_FINISHPAGE_TEXT "Quantway установлен. Откройте его из меню Пуск. При первом подключении VPN Windows один раз запросит разрешение администратора; до закрытия Quantway повторных запросов не будет."
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
