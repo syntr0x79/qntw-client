@@ -211,7 +211,7 @@ func (*mobileSystemDialer) Dial(ctx context.Context, src xnet.Address, dest xnet
 			}
 			packet = udp
 		}
-		return &internet.PacketConnWrapper{PacketConn: packet, Dest: target}, nil
+		return &xnet.PacketConnWrapper{PacketConn: packet, Dest: target}, nil
 	}
 	keepAlive := net.KeepAliveConfig{Enable: true, Idle: 45 * time.Second, Interval: 45 * time.Second, Count: -1}
 	if options != nil {

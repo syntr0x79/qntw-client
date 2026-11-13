@@ -9,6 +9,7 @@ import (
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/core"
 	hyproxy "github.com/xtls/xray-core/proxy/hysteria"
+	"github.com/xtls/xray-core/proxy/masque"
 	"github.com/xtls/xray-core/proxy/shadowsocks"
 	"github.com/xtls/xray-core/proxy/trojan"
 	vlessout "github.com/xtls/xray-core/proxy/vless/outbound"
@@ -35,6 +36,8 @@ func ServerEndpoint(msg proto.Message) (*protocol.ServerEndpoint, error) {
 	case *shadowsocks.ClientConfig:
 		return c.GetServer(), nil
 	case *hyproxy.ClientConfig:
+		return c.GetServer(), nil
+	case *masque.ClientConfig:
 		return c.GetServer(), nil
 	}
 	return nil, fmt.Errorf("%w: протокол %T незнаком", ErrNoServer, msg)
