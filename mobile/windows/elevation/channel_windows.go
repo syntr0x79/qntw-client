@@ -139,7 +139,9 @@ func Start(ctx context.Context, mode string) (*Channel, error) {
 	}
 	launched := make(chan launchResult, 1)
 	args := "--pipe " + syscall.EscapeArg(name) + " --caller-pid " + fmt.Sprint(os.Getpid()) + " --nonce " + nonce
-	go func() { h, e := elevate(helper, args); launched <- launchResult{h, e} }()
+	// With the Quantway GUI this goes through its elevated broker: UAC is shown
+	// once per GUI session instead of on every connection.
+	go func() { h, e := launchHelper(ctx, mode, helper, args, nonce); launched <- launchResult{h, e} }()
 	var process windows.Handle
 	select {
 	case result := <-launched:
