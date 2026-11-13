@@ -16,6 +16,7 @@ import (
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/core"
 	hyproxy "github.com/xtls/xray-core/proxy/hysteria"
+	masqueproxy "github.com/xtls/xray-core/proxy/masque"
 	"github.com/xtls/xray-core/proxy/shadowsocks"
 	"github.com/xtls/xray-core/proxy/trojan"
 	"github.com/xtls/xray-core/proxy/vless"
@@ -23,12 +24,14 @@ import (
 	"github.com/xtls/xray-core/proxy/vmess"
 	vmessout "github.com/xtls/xray-core/proxy/vmess/outbound"
 	"github.com/xtls/xray-core/transport/internet"
+	"github.com/xtls/xray-core/transport/internet/finalmask/fragment"
 	"github.com/xtls/xray-core/transport/internet/grpc"
 	headerhttp "github.com/xtls/xray-core/transport/internet/headers/http"
 	headernoop "github.com/xtls/xray-core/transport/internet/headers/noop"
 	"github.com/xtls/xray-core/transport/internet/httpupgrade"
 	"github.com/xtls/xray-core/transport/internet/hysteria"
 	"github.com/xtls/xray-core/transport/internet/kcp"
+	masque "github.com/xtls/xray-core/transport/internet/masque"
 	"github.com/xtls/xray-core/transport/internet/reality"
 	"github.com/xtls/xray-core/transport/internet/splithttp"
 	"github.com/xtls/xray-core/transport/internet/tcp"
@@ -148,9 +151,10 @@ func safeAddress(address *xnet.IPOrDomain) bool {
 var allowedTyped = func() map[string]bool {
 	result := map[string]bool{}
 	for _, value := range []proto.Message{
-		&proxyman.SenderConfig{}, &vlessout.Config{}, &vmessout.Config{}, &trojan.ClientConfig{}, &shadowsocks.ClientConfig{}, &hyproxy.ClientConfig{},
-		&vless.Account{}, &vmess.Account{}, &trojan.Account{}, &shadowsocks.Account{},
-		&xtls.Config{}, &reality.Config{}, &headerhttp.Config{}, &headernoop.Config{}, &tcp.Config{}, &websocket.Config{}, &httpupgrade.Config{}, &grpc.Config{}, &splithttp.Config{}, &kcp.Config{}, &hysteria.Config{},
+		&proxyman.SenderConfig{}, &vlessout.Config{}, &vmessout.Config{}, &trojan.ClientConfig{}, &shadowsocks.ClientConfig{}, &hyproxy.ClientConfig{}, &masqueproxy.ClientConfig{},
+		&vless.Account{}, &vmess.Account{}, &trojan.Account{}, &shadowsocks.Account{}, &masqueproxy.Account{},
+		&xtls.Config{}, &reality.Config{}, &headerhttp.Config{}, &headernoop.Config{}, &tcp.Config{}, &websocket.Config{}, &httpupgrade.Config{}, &grpc.Config{}, &splithttp.Config{}, &kcp.Config{}, &hysteria.Config{}, &masque.Config{},
+		&fragment.Config{},
 	} {
 		result[string(value.ProtoReflect().Descriptor().FullName())] = true
 	}
@@ -197,7 +201,7 @@ func validateMessage(message protoreflect.Message, depth int, budget *int) error
 			return errProfile
 		}
 		if value.Settings != nil {
-			expected := map[string]string{"": "tcp", "raw": "tcp", "tcp": "tcp", "websocket": "websocket", "httpupgrade": "httpupgrade", "grpc": "grpc.encoding", "splithttp": "splithttp", "kcp": "kcp", "hysteria": "hysteria"}[value.ProtocolName]
+			expected := map[string]string{"": "tcp", "raw": "tcp", "tcp": "tcp", "websocket": "websocket", "httpupgrade": "httpupgrade", "grpc": "grpc.encoding", "splithttp": "splithttp", "kcp": "kcp", "hysteria": "hysteria", "masque": "masque"}[value.ProtocolName]
 			if value.Settings.Type != "xray.transport.internet."+expected+".Config" {
 				return errProfile
 			}
@@ -220,6 +224,18 @@ func validateMessage(message protoreflect.Message, depth int, budget *int) error
 		if value.MasqType != "" || value.MasqFile != "" || value.MasqUrl != "" || value.MasqString != "" {
 			return errProfile
 		}
+	case *masque.Config:
+		// Header values go to the MASQUE server only; CR/LF would split the
+		// request. WARP mode needs Cloudflare-side state the helper never
+		// manages, so only the provider's own CONNECT-IP endpoint is accepted.
+		if value.Warp != nil {
+			return errProfile
+		}
+		for k, v := range value.Headers {
+			if strings.ContainsAny(k+v, "\r\n\x00") {
+				return errProfile
+			}
+		}
 	}
 	var result error
 	message.Range(func(field protoreflect.FieldDescriptor, value protoreflect.Value) bool {
@@ -236,7 +252,7 @@ func validateMessage(message protoreflect.Message, depth int, budget *int) error
 				}
 				if strings.Contains(name, "path") {
 					owner := string(message.Descriptor().FullName())
-					if name != "path" || (owner != "xray.transport.internet.websocket.Config" && owner != "xray.transport.internet.httpupgrade.Config" && owner != "xray.transport.internet.splithttp.Config") {
+					if name != "path" || (owner != "xray.transport.internet.websocket.Config" && owner != "xray.transport.internet.httpupgrade.Config" && owner != "xray.transport.internet.splithttp.Config" && owner != "xray.transport.internet.masque.Config") {
 						result = errProfile
 						return false
 					}
@@ -268,7 +284,7 @@ func validateMessage(message protoreflect.Message, depth int, budget *int) error
 
 func safeTransport(value string) bool {
 	switch value {
-	case "", "tcp", "raw", "websocket", "httpupgrade", "grpc", "splithttp", "kcp", "hysteria":
+	case "", "tcp", "raw", "websocket", "httpupgrade", "grpc", "splithttp", "kcp", "hysteria", "masque":
 		return true
 	default:
 		return false

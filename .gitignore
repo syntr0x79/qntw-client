@@ -19,3 +19,4 @@ __pycache__/
 *.p12
 *.pfx
 *.mobileprovision
+/mobile/windows/cmd/quantway-gui/resource_windows_*.syso

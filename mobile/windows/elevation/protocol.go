@@ -25,6 +25,9 @@ type Packet struct {
 	ControlURL string             `json:"control_url,omitempty"`
 	Status     *clienttinc.Status `json:"status,omitempty"`
 	Code       string             `json:"code,omitempty"`
+	// Handle is used only on the GUI broker pipe: a SYNCHRONIZE|QUERY handle to
+	// the started helper, duplicated into the requesting desktop process.
+	Handle uint64 `json:"handle,omitempty"`
 }
 
 func Read(r io.Reader) (Packet, error) {

@@ -1,0 +1,35 @@
+/* Windows-only additions to the shared macOS web interface (linked last). */
+
+/* Windows has no colour flag emoji: Segoe UI Emoji draws regional indicators
+   as letters ("RU", "NL"). A Twemoji flag font restricted to the flag code
+   points is put first in every font stack; other text falls through to the
+   design fonts unchanged. The page templates set font-family inline, hence
+   !important on their root containers. */
+@font-face {
+  font-family: 'Twemoji Country Flags';
+  font-style: normal;
+  font-display: block;
+  src: url("TwemojiCountryFlags.woff2") format('woff2');
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067, U+E006C, U+E006E, U+E0073-E0074, U+E0077, U+E007F;
+}
+body, #app > div, body > div {
+  font-family: 'Twemoji Country Flags', Manrope, system-ui, sans-serif !important;
+}
+#app main.cabinet-a, .ca-dialog {
+  font-family: 'Twemoji Country Flags', CabinetManrope, Manrope, system-ui, sans-serif !important;
+}
+
+/* Classic Windows scrollbars (light gutter, arrow buttons) clash with the dark
+   theme; draw thin bars like the macOS overlay scrollbars. The standard
+   scrollbar-* properties are reset because they disable these pseudo-elements. */
+* {
+  scrollbar-width: auto !important;
+  scrollbar-color: auto !important;
+}
+::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
+::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2A3A48; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3A4D5E; }
+/* The design hides this one (scrollbar-width:none, reset above). */
+.cabinet-a .ca-tabs::-webkit-scrollbar { display: none; }

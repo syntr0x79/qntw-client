@@ -363,7 +363,7 @@ func (d *physicalDialer) Dial(ctx context.Context, _ xnet.Address, destination x
 		if err = d.add(owned); err != nil {
 			return nil, err
 		}
-		return &internet.PacketConnWrapper{PacketConn: owned, Dest: remote}, nil
+		return &xnet.PacketConnWrapper{PacketConn: owned, Dest: remote}, nil
 	}
 	if destination.Network != xnet.Network_TCP {
 		return nil, errors.New("unsupported outer VPN network")

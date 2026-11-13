@@ -72,26 +72,40 @@ function vals(){
  const model=statusModel();const modes=[['vpn','Обычный VPN'],['tinc','Mesh (Tinc)']].map(([id,label])=>({label,disabled:active()||(id==='tinc'&&S.source?.id!=='account'),style:segment(S.mode===id)+(active()?';cursor:default':''),pick:()=>changeMode(id)}));
  const tabs=W.tabs().map(([id,label])=>({label,style:segment(S.tab===id),pick:()=>navigate('cabinet',id)}));
  const results=new Map(S.results.map(r=>[r.job_id,r]));
- const routes=S.profiles.map(p=>{const r=results.get(p.job_id),sel=S.selected?.job_id===p.job_id;const ok=r?.outcome==='ok',dead=r&&r.outcome!=='ok';return {...p,code:p.country||'↗',name:p.label,note:ok?'Маршрут доступен':dead?probeReason(r):'Ещё не проверен',proto:[p.protocol,p.transport].filter(Boolean).join(' · '),ping:r?(ok?r.elapsed_ms+' мс':'не прошла'):'—',pingStyle:'font-size:13px;font-weight:700;color:'+(ok?'#6FD6C8':dead?'#F08A7E':'#93A3B3'),rowStyle:'display:grid;grid-template-columns:1fr 160px 120px 110px;gap:12px;align-items:center;padding:10px 16px;border-radius:12px;background:'+(sel?'#13251F':'#111B23')+';border:1px solid '+(sel?'#1F5A52':'#1A2530'),dis:!!dead||S.status==='stopping',btnText:sel?'Выбран':'Выбрать',btnStyle:'min-height:36px;border-radius:9px;font:inherit;font-size:13px;font-weight:700;'+(sel?'background:#6FD6C8;color:#072024;border:0':'background:transparent;color:#E8EEF3;border:1px solid #2A3A48')+(dead?';opacity:.45':''),pick:()=>pickRoute(p),ok}}).filter(r=>(!S.query||[r.name,r.proto].join(' ').toLowerCase().includes(S.query.toLowerCase()))&&(S.filter==='all'||r.ok));
+ const routes=S.profiles.map(p=>{const r=results.get(p.job_id),sel=S.selected?.job_id===p.job_id;const ok=r?.outcome==='ok',dead=r&&r.outcome!=='ok';return {...p,code:p.country||flagCode(p.label)||'↗',name:p.label,note:ok?'Маршрут доступен':dead?probeReason(r):'Ещё не проверен',proto:[p.protocol,p.transport].filter((v,i,a)=>v&&a.indexOf(v)===i).join(' · '),ping:r?(ok?r.elapsed_ms+' мс':'не прошла'):'—',pingStyle:'font-size:13px;font-weight:700;color:'+(ok?'#6FD6C8':dead?'#F08A7E':'#93A3B3'),rowStyle:'display:grid;grid-template-columns:1fr 160px 120px 110px;gap:12px;align-items:center;padding:10px 16px;border-radius:12px;background:'+(sel?'#13251F':'#111B23')+';border:1px solid '+(sel?'#1F5A52':'#1A2530'),dis:!!dead||S.status==='stopping',btnText:sel?'Выбран':'Выбрать',btnStyle:'min-height:36px;border-radius:9px;font:inherit;font-size:13px;font-weight:700;'+(sel?'background:#6FD6C8;color:#072024;border:0':'background:transparent;color:#E8EEF3;border:1px solid #2A3A48')+(dead?';opacity:.45':''),pick:()=>pickRoute(p),ok}}).filter(r=>(!S.query||[r.name,r.proto].join(' ').toLowerCase().includes(S.query.toLowerCase()))&&(S.filter==='all'||r.ok));
  const chips=[['all','Все'],['ok','Только рабочие']].map(([id,label])=>({label,pick:()=>{S.filter=id;render()},style:'height:42px;padding:0 14px;border-radius:10px;font:inherit;font-size:13px;font-weight:700;'+(S.filter===id?'background:#13403A;color:#6FD6C8;border:1px solid #1F5A52':'background:#131D26;color:#93A3B3;border:1px solid #22323F')}));
  return {...model,showForm:!['restore_running','login_loading','keychain_unavailable','subscription_inactive','no_seats','org_owner_no_vpn','device_unavailable','logout_done'].includes(S.loginPhase),done:false,login,modes,tabs,isSub:S.tab==='sub',isOther:S.tab==='other',routes,chips,check:checkRoutes,checkedText:S.busy?(S.probeProgress?'Проверено '+S.probeProgress.done+' из '+S.probeProgress.total+'…':'Загрузка…'):S.results.length?'Проверено '+S.results.length+' · '+S.results.filter(r=>r.outcome==='ok').length+' работают':'Проверка ещё не выполнялась',route:'Источник: '+(S.source?.name||'Не выбран')+' · '+(S.mode==='tinc'?'Mesh (Tinc) · '+countryName(S.assigned||S.country):'Обычный VPN · '+label()),sourceMenu,subLine:subText(),hasExtra:S.extra,extra:S.cleanupError?'Сетевые настройки восстановлены не полностью. Сохраните работу и перезагрузите Mac. Если интернет не восстановился, обратитесь в поддержку. Не запускайте новое подключение в этом сеансе.':S.status==='authorizing'?'macOS запрашивает разрешение для настройки сетевого интерфейса VPN. Пароль вводится только в системном окне. Отменить можно в любой момент.':(S.errorCode?'Код: '+S.errorCode+'. ':'')+(S.lastError||'Системный помощник настраивает интерфейс, маршруты и DNS только на время подключения.'),stats:[{k:'Загрузка',v:rate('rx'),key:'down'},{k:'Отдача',v:rate('tx'),key:'up'},{k:'Задержка',v:'—',key:'latency'},{k:'В сети',v:connectionTime(),key:'time'}],statsNote:S.status==='connected'?'Скорость — измеренный трафик интерфейса, не тариф. «В сети» — время подтверждённого соединения.':'Метрики появятся после подтверждения соединения и первой выборки.',...tincVals()};
 }
+// "🇳🇱 AWG - Нидерланды" → "NL": route labels carry the country as a flag only.
+function flagCode(text){const m=/^\s*([\u{1F1E6}-\u{1F1FF}])([\u{1F1E6}-\u{1F1FF}])/u.exec(text||'');return m?String.fromCharCode(m[1].codePointAt(0)-0x1F1A5,m[2].codePointAt(0)-0x1F1A5):''}
 function rate(k){return S.status==='connected'&&S.traffic?.[k]!=null?(S.traffic[k]*8/1e6).toFixed(1)+' Мбит/с':'—'}
 function connectionTime(){if(S.status!=='connected')return'—';const s=Math.max(0,Math.floor((Date.now()-S.started)/1000));return Math.floor(s/3600)+':'+String(Math.floor(s/60)%60).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
 function render(){
  const focus=document.activeElement,focusId=focus?.id,selection=focus?.selectionStart;
  const template=S.page==='routes'&&S.mode==='tinc'?'tinc-routes':S.page;
- const frag=$('template#'+template).content.cloneNode(true);for(const c of [...frag.childNodes])bind(c,vals());$('#app').replaceChildren(frag);
+ // Re-rendering the same view must not throw lists back to the top.
+ const app=$('#app'),view=template+(S.page==='cabinet'?':'+S.tab:''),scrolls=app.dataset.view===view?scrollState(app):[];
+ const frag=$('template#'+template).content.cloneNode(true);for(const c of [...frag.childNodes])bind(c,vals());app.replaceChildren(frag);app.dataset.view=view;
  $$('button[aria-label="Свернуть"]').forEach(b=>b.onclick=()=>api('minimize'));$$('button[aria-label="Закрыть"]',$('#app')).forEach(b=>b.onclick=requestClose);
  const go={'Home.dc.html':'home','P0-Connect.dc.html':'home','Routes.dc.html':'routes','P0-TincCountries.dc.html':'routes','Cabinet.dc.html':'cabinet'};
  $$('a',$('#app')).forEach(a=>{const h=a.getAttribute('href');if(go[h])a.onclick=e=>{e.preventDefault();if(h==='Routes.dc.html'&&S.mode==='tinc'&&S.page==='routes')safe(()=>changeMode('vpn'));else navigate(go[h])};else if(h==='#')a.onclick=e=>e.preventDefault()});
  updateNav();
  if(S.page==='login')setupLogin();
- if(S.page==='home'){const ring=$('main button[aria-label]');ring?.classList.add('connection-ring');if(statusModel().icBusy)ring?.querySelector('svg')?.classList.add('connection-spinner');}
+ if(S.page==='home'){const ring=$('main button[aria-label]');ring?.classList.add('connection-ring');const spinner=statusModel().icBusy&&ring?.querySelector('svg');if(spinner){spinner.classList.add('connection-spinner');spinner.style.animationDelay=-(performance.now()%SPIN_MS)+'ms'}}
  if(S.page==='routes')setupRoutes();
  if(S.page==='cabinet')W.renderCabinet();
  if(focusId&&focus?.closest('#app')){const n=document.getElementById(focusId);if(n){n.focus();if(typeof selection==='number'&&typeof n.setSelectionRange==='function')try{n.setSelectionRange(selection,selection)}catch{}}}
+ restoreScroll(app,scrolls);
 }
+// The spinner element is recreated on every render; a phase taken from a
+// shared clock keeps the rotation continuous instead of restarting at 0°.
+const SPIN_MS=1200;
+function nodePath(e,root){const p=[];while(e&&e!==root){p.unshift([...e.parentNode.children].indexOf(e));e=e.parentNode}return p}
+function scrollState(root){return $$('*',root).filter(e=>e.scrollTop||e.scrollLeft).map(e=>[nodePath(e,root),e.scrollTop,e.scrollLeft])}
+function restoreScroll(root,list){for(const[p,top,left]of list){let e=root;for(const i of p)e=e?.children[i];if(e){e.scrollTop=top;e.scrollLeft=left}}}
+// Probe progress only changes the "Проверено N из M" counter: patch the text
+// in place so buttons are not replaced under the cursor 100+ times per check.
+function patchProgress(e){let n=0;const w=document.createTreeWalker($('#app'),NodeFilter.SHOW_TEXT);for(let t;(t=w.nextNode());)if(/Проверено \d+ из \d+/.test(t.data)){t.data=t.data.replace(/Проверено \d+ из \d+/,'Проверено '+e.done+' из '+e.total);n++}return n>0}
 function updateNav(){const v=statusModel(),nav=$('#app nav');if(!nav)return;const box=nav.lastElementChild;if(box){const spans=$$('span',box);if(spans[0])spans[0].style.cssText=v.dotStyle;if(spans[1])spans[1].textContent=v.shortStatus;if(spans[2])spans[2].textContent=subText()}}
 function updateMetrics(){for(const[key,v]of Object.entries({down:rate('rx'),up:rate('tx'),time:connectionTime()}))$$('[data-stat="'+key+'"]').forEach(n=>n.textContent=v)}
 function navigate(page,tab){S.page=page;if(tab)S.tab=tab;closePopup();render();if(page==='cabinet')safe(()=>W.loadTab());}
@@ -149,7 +163,7 @@ async function checkRoutes(forConnection=false){
  finally{if(epoch===S.probeEpoch){S.busy=false;S.probing=false;render()}}
 }
 async function cancelProbe(){connectEpoch++;const epoch=++S.probeEpoch;try{await api('cancel-probe')}finally{if(epoch===S.probeEpoch){S.busy=false;S.probing=false;S.probeProgress=null;if(S.status==='checking')S.status='off';render()}}}
-window.probeEvent=e=>{if(S.probing&&e.type==='progress'){S.probeProgress=e;if(S.page==='routes'||S.page==='home')render()}};
+window.probeEvent=e=>{if(S.probing&&e.type==='progress'){const had=!!S.probeProgress;S.probeProgress=e;if((S.page==='routes'||S.page==='home')&&!(had&&patchProgress(e)))render()}};
 async function stopConnection(){
  if(S.status==='checking'){await cancelProbe();return}
  if(!active())return;if(!S.helperRunning){S.status='off';render();return}if(S.stopPromise)return S.stopPromise;

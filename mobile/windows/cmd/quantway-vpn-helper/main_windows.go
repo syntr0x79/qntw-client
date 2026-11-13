@@ -24,6 +24,8 @@ func main() {
 	pipe := flag.String("pipe", "", "private desktop endpoint")
 	pid := flag.Uint("caller-pid", 0, "desktop process identity")
 	nonce := flag.String("nonce", "", "endpoint nonce")
+	broker := flag.Bool("broker", false, "serve the GUI session broker")
+	guiPID := flag.Uint("gui-pid", 0, "installed GUI process identity")
 	flag.Parse()
 	if *idle {
 		if elevation.CheckIdle() != nil {
@@ -52,6 +54,18 @@ func main() {
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+	if *broker {
+		// One UAC approval per GUI session; each VPN session still gets its own
+		// fresh elevated helper process started by this broker.
+		if mode != "vpn" || *guiPID == 0 {
+			os.Exit(1)
+		}
+		if e = elevation.ServeBroker(ctx, uint32(*guiPID)); e != nil {
+			fmt.Fprintln(os.Stderr, "Quantway administrator broker stopped:", e)
+			os.Exit(1)
+		}
+		return
+	}
 	if e = serve(ctx, mode, *pipe, uint32(*pid), *nonce); e != nil {
 		fmt.Fprintln(os.Stderr, "Quantway administrator helper stopped: setup or cleanup failed")
 		os.Exit(1)

@@ -34,7 +34,17 @@ func TrustedExecutable(path string) error {
 	if e != nil {
 		return e
 	}
-	if !filepath.IsAbs(path) || !strings.EqualFold(filepath.Dir(path), paths.Bin) {
+	return trustedInstalled(path, paths.Bin)
+}
+
+// trustedInstalled applies the same ACL/owner/ancestry checks to a file that
+// lives directly in dir (bin or the installation root).
+func trustedInstalled(path, dir string) error {
+	paths, e := InstallPaths()
+	if e != nil {
+		return e
+	}
+	if !filepath.IsAbs(path) || !strings.EqualFold(filepath.Dir(path), dir) {
 		return errors.New("helper is not installed")
 	}
 	for p := path; ; p = filepath.Dir(p) {

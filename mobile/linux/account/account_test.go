@@ -55,6 +55,7 @@ func TestBindDeviceReusesInstallationAndDoesNotCreateTwice(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOME", root)
 	t.Setenv("XDG_CONFIG_HOME", root)
+	t.Setenv("AppData", root) // os.UserConfigDir on Windows
 	const id = "11111111-2222-4333-8444-555555555555"
 	name := desktopmeta.Label() + " 11111111222243338444555555555555"
 	created := 0
@@ -92,6 +93,7 @@ func TestDeviceNamePersists(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOME", root)
 	t.Setenv("XDG_CONFIG_HOME", root)
+	t.Setenv("AppData", root) // os.UserConfigDir on Windows
 	first, err := DeviceName()
 	if err != nil {
 		t.Fatal(err)
@@ -106,6 +108,7 @@ func TestRefreshBindingRecoversAfterSlotIsFreed(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOME", root)
 	t.Setenv("XDG_CONFIG_HOME", root)
+	t.Setenv("AppData", root) // os.UserConfigDir on Windows
 	const oldID = "11111111-2222-4333-8444-555555555555"
 	const currentID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
 	free, created := false, false
@@ -159,6 +162,7 @@ func TestReplacementReusesAtomicReissueAndRecognisesRenamedDevice(t *testing.T) 
 	root := t.TempDir()
 	t.Setenv("HOME", root)
 	t.Setenv("XDG_CONFIG_HOME", root)
+	t.Setenv("AppData", root) // os.UserConfigDir on Windows
 	const oldID = "11111111-2222-4333-8444-555555555555"
 	const newID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
 	name := desktopmeta.Label() + " 11111111222243338444555555555555"
